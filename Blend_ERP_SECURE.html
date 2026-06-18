@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blend ERP Support</title>
+<script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f0f0f5;min-height:100vh}
+.nav{background:#33344A;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.nlogo{width:32px;height:32px;background:#6264A7;border-radius:6px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ntabs{display:flex;gap:2px;background:rgba(255,255,255,.1);border-radius:6px;padding:3px}
+.ntab{padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;color:#CAC9C8;border:none;background:transparent;font-weight:500;font-family:inherit;transition:all .15s}
+.ntab.on{background:#6264A7;color:#fff;font-weight:700}
+.uav{width:28px;height:28px;background:#6264A7;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:5px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.b-blue{background:#6264A7!important;color:#fff!important;border-color:#6264A7!important}
+.b-green{background:#237B4B!important;color:#fff!important;border-color:#237B4B!important}
+.b-amber{background:#FAEEDA!important;color:#633806!important;border-color:#D97706!important}
+.b-red{border-color:#C4314B!important;color:#C4314B!important;background:#fff!important}
+.b-sm{padding:5px 10px!important;font-size:11px!important}
+.inp{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;color:#252424;background:#fff;font-family:inherit}
+.inp:focus{outline:2px solid #6264A7;border-color:#6264A7}
+textarea.inp{height:62px;resize:vertical}
+.lbl{font-size:11px;font-weight:700;color:#605E5C;margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.req{color:#C4314B}
+.lock{background:#F5F5F5;padding:8px 10px;border:1px solid #E1E1E1;border-radius:5px;font-size:13px;color:#605E5C}
+.lock b{color:#6264A7}
+.sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#605E5C;border-bottom:2px solid #E1E1E1;padding-bottom:5px;margin:14px 0 10px}
+.content{padding:14px;max-width:1100px;margin:0 auto}
+.card{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:18px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.ft{width:100%;border-collapse:collapse;margin-bottom:8px}
+.ft td{padding:4px 5px;vertical-align:top}
+.ft td:first-child{padding-left:0}
+.ft td:last-child{padding-right:0}
+.pre{display:table;width:100%}
+.pre-t{display:table-cell;background:#F5F5F5;padding:8px 10px;border:1px solid #d1d5db;border-right:none;border-radius:5px 0 0 5px;font-size:13px;color:#605E5C;white-space:nowrap;width:1%;vertical-align:middle}
+.pre-m{display:table-cell;width:100%}
+.pre-m .inp{border-radius:0 5px 5px 0!important}
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-height:10px;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:4px;padding:4px 9px;font-size:12px;color:#3730A3;font-weight:600}
+.chipx{cursor:pointer;font-size:15px;line-height:1;color:#6264A7;margin-left:2px}
+.chipx:hover{color:#C4314B}
+.sug-wrap{position:relative}
+.sug-list{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #E1E1E1;border-top:none;border-radius:0 0 5px 5px;z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #F5F5F5;font-size:13px}
+.sug-item:hover{background:#EEF2FF}
+.sug-name{font-weight:600;color:#252424}
+.sug-email{font-size:11px;color:#605E5C;margin-top:1px}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;text-transform:uppercase}
+.s-open{background:#EEF2FF;color:#3730A3}.s-prog{background:#FEF9C3;color:#713F12}
+.s-hold{background:#F3F4F6;color:#374151}.s-pend{background:#FDF4FF;color:#6B21A8}
+.s-closed{background:#DCFCE7;color:#14532D}
+.p-urgent{background:#FEE2E2;color:#7F1D1D}.p-high{background:#FEF3C7;color:#78350F}
+.p-medium{background:#DBEAFE;color:#1E3A8A}.p-low{background:#F3F4F6;color:#374151}
+.cpill{background:#F5F5F5;color:#605E5C;display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700}
+.suc-icon{width:60px;height:60px;background:#DCFCE7;border-radius:50%;line-height:60px;text-align:center;font-size:28px;color:#237B4B;margin:0 auto 12px}
+.tkt-box{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:14px 28px;display:inline-block;margin-bottom:14px}
+.tkt-num{font-size:48px;font-weight:700;color:#33344A;font-family:'Courier New',monospace;letter-spacing:4px}
+.tkt-card{border:1px solid #E1E1E1;border-radius:8px;padding:14px;margin-bottom:10px;border-left:4px solid #6264A7;background:#fff}
+.tkt-card.urg{border-left-color:#C4314B}.tkt-card.cls{border-left-color:#237B4B}
+.dot{width:22px;height:22px;border-radius:50%;display:inline-block;text-align:center;line-height:22px;font-size:11px}
+.d-done{background:#DCFCE7;color:#237B4B}.d-act{background:#EEF2FF;color:#6264A7}.d-idle{background:#F5F5F5;color:#AAA}
+.tktbl{width:100%;border-collapse:collapse;font-size:12px}
+.tktbl thead tr{background:#F5F5F5;border-bottom:2px solid #E1E1E1}
+.tktbl th{padding:9px 8px;font-size:10px;font-weight:700;color:#605E5C;text-align:left;text-transform:uppercase;white-space:nowrap}
+.tktbl tbody tr{border-bottom:1px solid #F0F0F0;transition:background .1s}
+.tktbl tbody tr:hover td{background:#F9F9FC}
+.tktbl td{padding:9px 8px;vertical-align:middle}
+.tid{font-family:'Courier New',monospace;font-size:13px;color:#6264A7;font-weight:700}
+.dok{font-size:11px;color:#237B4B;font-weight:700}.dw{font-size:11px;color:#D97706;font-weight:700}
+.do{font-size:11px;color:#C4314B;font-weight:700}.dn{font-size:11px;color:#aaa}
+.ep{background:#F9F9FC;border:2px solid #6264A7;border-radius:8px;padding:16px;margin-top:10px}
+.elock{background:#F5F5F5;padding:6px 10px;border:1px solid #E1E1E1;border-radius:4px;font-size:12px;color:#605E5C}
+.sumbar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.sc{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.scv{font-size:22px;font-weight:700}.scl{font-size:10px;color:#605E5C;margin-top:2px;font-weight:600}
+.al{padding:8px 12px;border-radius:5px;font-size:12px;margin-bottom:6px}
+.al-w{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+.al-p{background:#FDF4FF;border:1px solid #DDD6FE;color:#5B21B6}
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#33344A;color:#fff;padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;display:none;box-shadow:0 4px 16px rgba(0,0,0,.25);min-width:200px;text-align:center;transition:opacity .3s}
+.toast.ok{background:#237B4B}.toast.err{background:#C4314B}.toast.info{background:#6264A7}
+.mbar{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:10px 14px;font-size:12px;color:#33344A;margin-bottom:10px;display:none}
+.lwrap{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.lcard{background:#fff;border:1px solid #E1E1E1;border-radius:10px;padding:32px;width:340px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.cc-card{background:#fff;border:1px solid #FECACA;border-radius:8px;padding:16px;margin-bottom:10px}
+.ml-card{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:16px;margin-bottom:10px}
+.srch{flex:1;display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #E1E1E1;border-radius:5px;padding:7px 12px}
+.srch input{border:none;outline:none;width:100%;font-size:13px;font-family:inherit}
+.fsel{padding:7px 10px;border:1px solid #E1E1E1;border-radius:5px;font-size:12px;background:#fff;font-family:inherit}
+.empty{padding:36px;text-align:center;color:#AAA;font-size:13px}
+.pg{display:none}.pg.on{display:block}
+/* Loading overlay */
+.lov{position:fixed;inset:0;background:rgba(51,52,74,.6);z-index:8000;display:none;align-items:center;justify-content:center}
+.lbox{background:#fff;border-radius:10px;padding:30px 40px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.spin{width:38px;height:38px;border:4px solid #E1E1E1;border-top-color:#6264A7;border-radius:50%;animation:sp .7s linear infinite;margin:0 auto 14px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Setup banner */
+.setup-banner{background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:16px;margin-bottom:12px}
+.setup-banner b{display:block;font-size:14px;margin-bottom:6px;color:#92400E}
+.setup-banner p{font-size:12px;color:#7C2D12;line-height:1.6;margin-bottom:8px}
+.setup-banner code{background:#FEF3C7;padding:2px 6px;border-radius:3px;font-family:'Courier New';font-size:11px}
+.status-bar{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:8px 14px;font-size:11px;color:#3730A3;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#AAA;flex-shrink:0}
+.status-dot.ok{background:#237B4B}.status-dot.err{background:#C4314B}.status-dot.loading{background:#D97706;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div id="TOAST" class="toast"></div>
+<div id="LOV" class="lov" style="display:none"><div class="lbox"><div class="spin"></div><div id="LMSG" style="font-size:13px;color:#605E5C;font-weight:600">Loading...</div></div></div>
+<div id="MBAR" class="mbar"></div>
+
+<!-- ═══ PUBLIC PAGE ═══ -->
+<div id="PG_PUB" class="pg on">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nlogo">BL</div>
+    <div><div style="color:#fff;font-size:14px;font-weight:700">Blend ERP Support</div><div style="color:#AAA9A8;font-size:11px">Customer ID: <b style="color:#9EA2FF">BLEND</b></div></div>
+  </div>
+  <div class="ntabs">
+    <button class="ntab on" id="T1" onclick="goTab(1)">+ New Ticket</button>
+    <button class="ntab" id="T2" onclick="goTab(2)">My Tickets</button>
+    <button class="ntab" id="T3" onclick="goTab(3)">Track</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="uav" id="UAV">?</div>
+    <span style="color:#CAC9C8;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="UNM">Guest</span>
+    <button class="btn b-sm" onclick="goAdmin()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">⚙ Admin</button>
+  </div>
+</div>
+<div class="content">
+
+<!-- NEW TICKET -->
+<div id="V1">
+<div class="card" id="FCARD">
+  <div style="font-size:16px;font-weight:700;color:#252424;margin-bottom:4px">Raise a Support Ticket</div>
+  <div style="font-size:13px;color:#605E5C;margin-bottom:16px">Fill all required fields. Your ticket is saved instantly.</div>
+  <div class="sec">Ticket Details</div>
+  <table class="ft"><tbody>
+    <tr>
+      <td width="25%"><label class="lbl">Customer ID</label><div class="lock"><b>BLEND</b></div></td>
+      <td width="25%"><label class="lbl">Raised On</label><div class="lock" id="F_DT"></div></td>
+      <td width="25%"><label class="lbl">Category <span class="req">*</span></label><select class="inp" id="F_CAT" onchange="updSub()"></select></td>
+      <td width="25%"><label class="lbl">Sub-category</label><select class="inp" id="F_SUB"></select></td>
+    </tr>
+    <tr><td colspan="4" style="padding-top:8px">
+      <label class="lbl">Subject <span class="req">*</span></label>
+      <input class="inp" id="F_SJ" placeholder="Brief description of the issue">
+    </td></tr>
+    <tr>
+      <td width="25%"><label class="lbl">Priority <span class="req">*</span></label>
+        <select class="inp" id="F_PR"><option>Medium</option><option>Low</option><option>High</option><option>Urgent</option></select></td>
+      <td colspan="3" style="padding-left:5px">
+        <label class="lbl">Assigned To <span class="req">*</span></label>
+        <div class="chips" id="CHIPS"></div>
+        <div class="sug-wrap">
+          <input class="inp" id="F_AE" type="email" placeholder="Type name or email to search assignee..." autocomplete="off" oninput="showSug()" onfocus="showSug()" onblur="hideSug()" style="margin-bottom:6px">
+          <div class="sug-list" id="SUGLIST"></div>
+        </div>
+        <input type="hidden" id="F_AN">
+        <button class="btn b-blue b-sm" type="button" onclick="addAsgn()">+ Add Assignee</button>
+        <span style="font-size:11px;color:#605E5C;margin-left:8px">Multiple assignees allowed</span>
+      </td>
+    </tr>
+    <tr><td colspan="4" style="padding-top:8px">
+      <label class="lbl">Description</label>
+      <textarea class="inp" id="F_DS" placeholder="Explain the issue in detail..."></textarea>
+    </td></tr>
+  </tbody></table>
+  <div class="sec">Your Details</div>
+  <table class="ft"><tbody><tr>
+    <td width="40%"><label class="lbl">Full Name <span class="req">*</span></label><input class="inp" id="F_NM" placeholder="Your full name"></td>
+    <td width="30%"><label class="lbl">Mobile <span class="req">*</span></label>
+      <div class="pre"><span class="pre-t">+91</span><span class="pre-m"><input class="inp" id="F_MB" type="tel" maxlength="10" placeholder="9XXXXXXXXX"></span></div></td>
+    <td width="30%"><label class="lbl">Email <span class="req">*</span></label>
+      <input class="inp" id="F_EM" type="email" placeholder="your@email.com"></td>
+  </tr></tbody></table>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+    <button class="btn" onclick="doReset()">Clear Form</button>
+    <button class="btn b-blue" onclick="doSubmit()" style="padding:9px 28px;font-size:14px">Submit Ticket →</button>
+  </div>
+</div>
+<div id="SCARD" style="display:none" class="card">
+  <div style="text-align:center;padding:20px 12px">
+    <div class="suc-icon">✓</div>
+    <div style="font-size:20px;font-weight:700;color:#252424;margin-bottom:5px">Ticket Raised Successfully!</div>
+    <div style="font-size:13px;color:#605E5C;margin-bottom:16px">Saved to database. Save your ticket number below.</div>
+    <div class="tkt-box"><div style="font-size:10px;color:#6264A7;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Your Ticket Number</div><div class="tkt-num" id="S_NUM">001</div></div>
+    <div id="S_META" style="background:#F5F5F5;border-radius:8px;padding:12px 16px;font-size:13px;text-align:left;margin-bottom:12px;max-width:500px;margin-left:auto;margin-right:auto"></div>
+    <div id="S_MSG" style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;padding:10px 14px;font-size:12px;color:#237B4B;margin-bottom:16px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto"></div>
+    <button class="btn b-blue" onclick="doReset()">+ Raise Another Ticket</button>
+    &nbsp;<button class="btn" onclick="goTab(2)">View My Tickets</button>
+  </div>
+</div>
+</div>
+
+<!-- MY TICKETS -->
+<div id="V2" style="display:none">
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div><div style="font-size:16px;font-weight:700;color:#252424">My Tickets</div><div style="font-size:12px;color:#605E5C;margin-top:2px" id="MY_SUB">Your submitted tickets</div></div>
+    <button class="btn b-blue b-sm" onclick="goTab(1)">+ New Ticket</button>
+  </div>
+  <div id="MY_LIST"><div class="empty">Enter your email in New Ticket form to see your tickets.</div></div>
+</div>
+</div>
+
+<!-- TRACK -->
+<div id="V3" style="display:none">
+<div class="card">
+  <div style="font-size:16px;font-weight:700;color:#252424;margin-bottom:4px">Track Your Ticket</div>
+  <div style="font-size:13px;color:#605E5C;margin-bottom:12px">Enter ticket number or your email to check status.</div>
+  <table class="ft"><tbody><tr>
+    <td><input class="inp" id="TRK_Q" placeholder="Ticket number (e.g. 001) or your email" onkeydown="if(event.key==='Enter')doTrack()"></td>
+    <td style="width:110px;padding-left:8px"><button class="btn b-blue" onclick="doTrack()" style="width:100%;padding:9px">Search</button></td>
+  </tr></tbody></table>
+  <div id="TRK_RES" style="margin-top:12px"></div>
+</div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /PG_PUB -->
+
+<!-- ═══ LOGIN PAGE ═══ -->
+<div id="PG_LOGIN" class="pg">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:8px"><div class="nlogo">BL</div><div style="color:#fff;font-size:14px;font-weight:700">Admin Login</div></div>
+  <button class="btn b-sm" onclick="showPg('PG_PUB')" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">← Back</button>
+</div>
+<div class="content"><div class="lwrap"><div class="lcard">
+  <div style="width:52px;height:52px;background:#6264A7;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;margin:0 auto 14px">BL</div>
+  <div style="font-size:18px;font-weight:700;color:#252424;margin-bottom:4px">Admin Login</div>
+  <div style="font-size:13px;color:#605E5C;margin-bottom:18px">Enter password to access Admin Panel</div>
+  <div id="L_ERR" style="display:none;background:#FEE2E2;color:#7F1D1D;border-radius:5px;padding:8px 12px;font-size:13px;margin-bottom:10px">❌ Incorrect password.</div>
+  <label class="lbl" style="text-align:left;display:block;margin-bottom:4px">Password</label>
+  <input class="inp" id="L_PW" type="password" placeholder="Enter admin password" style="margin-bottom:12px">
+  <button class="btn b-blue" onclick="doLogin()" style="width:100%;padding:10px;justify-content:center;font-size:13px">Sign In</button>
+  <button class="btn" onclick="showPg('PG_PUB')" style="width:100%;padding:9px;margin-top:8px;justify-content:center">← Back to Portal</button>
+  <div style="background:#F5F5F5;border:1px solid #E1E1E1;border-radius:5px;padding:8px 10px;font-size:11px;color:#605E5C;margin-top:14px;text-align:left">Default password: <b style="font-family:'Courier New';color:#6264A7">admin123</b><br><span style="font-size:10px">Change the PASS variable in the code to update.</span></div>
+</div></div></div>
+</div>
+
+<!-- ═══ ADMIN PAGE ═══ -->
+<div id="PG_ADM" class="pg">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nlogo">BL</div>
+    <div style="color:#fff;font-size:14px;font-weight:700">Blend Admin Panel <span id="URG_B" style="display:none;background:#C4314B;color:#fff;font-size:10px;padding:2px 8px;border-radius:3px;margin-left:6px"></span></div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button class="btn b-sm" onclick="doRefresh()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔄 Refresh</button>
+    <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">📋 Log</button>
+    <button class="btn b-sm b-green" onclick="doExport()">⬇ Export Excel</button>
+    <button class="btn b-sm" onclick="showPg('PG_PUB')" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">Portal</button>
+    <button class="btn b-sm" onclick="doLogout()" style="background:rgba(255,255,255,.15);color:#C4314B;border-color:rgba(255,255,255,.3)">Logout</button>
+  </div>
+</div>
+<div class="content">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="status-dot" id="SDOT"></div>
+      <span id="STXT">Initializing...</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="SCNT" style="font-size:11px;color:#6264A7"></span>
+      <button class="btn b-sm" onclick="showSetup()" style="font-size:10px;padding:3px 8px">⚙ Setup</button>
+    </div>
+  </div>
+
+  <!-- SETUP PANEL (hidden by default) -->
+  <div id="SETUP_DIV" style="display:none" class="setup-banner">
+    <b>⚙ Microsoft Lists Setup — One time only (5 minutes)</b>
+    <p>Your M365 Business Standard licence includes Microsoft Lists. Follow these steps to enable permanent shared storage for all users across all devices and Teams:</p>
+    <ol style="margin:0 0 10px 18px;line-height:2.2;font-size:12px;color:#7C2D12">
+      <li>Open <b>lists.microsoft.com</b> → click <b>+ New list</b> → choose <b>Blank list</b></li>
+      <li>Name it exactly: <code>BlendERPTickets</code> → click Create</li>
+      <li>Click <b>+ Add column</b> → <b>Multiple lines of text</b> → name it <code>TicketData</code> → Save</li>
+      <li>Click <b>+ Add column</b> → <b>Single line of text</b> → name it <code>TicketId</code> → Save</li>
+      <li>Go to Settings (gear icon) → <b>List settings</b> → copy the <b>Web address</b> of your SharePoint site (e.g. <code>https://blendgroupin.sharepoint.com/sites/...</code>)</li>
+      <li>Paste the full URL below and click Connect</li>
+    </ol>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:260px">
+        <label class="lbl" style="margin-bottom:4px">SharePoint Site URL</label>
+        <input class="inp" id="SP_URL_IN" placeholder="https://blendgroupin.sharepoint.com/sites/IT" style="font-size:12px">
+      </div>
+      <button class="btn b-blue b-sm" onclick="connectSP()">Connect Lists</button>
+      <button class="btn b-sm" onclick="G('SETUP_DIV').style.display='none'">Close</button>
+    </div>
+    <div id="SP_TEST_MSG" style="margin-top:8px;font-size:12px;display:none"></div>
+  </div>
+
+  <div id="SUM_DIV"></div>
+  <div id="ALT_DIV"></div>
+
+  <div id="ML_WRAP" style="display:none" class="ml-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:15px;font-weight:700;color:#252424">Activity Log</div>
+      <button class="btn b-sm" onclick="toggleML()">Close</button>
+    </div>
+    <div id="ML_INNER" style="max-height:240px;overflow-y:auto"></div>
+  </div>
+
+  <div id="CC_WRAP" style="display:none" class="cc-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:6px">✅ Confirm Ticket Closure</div>
+    <label class="lbl">Requester Email (verification) <span class="req">*</span></label>
+    <input class="inp" id="CC_EM" type="email" placeholder="Enter requester email to confirm" style="margin-bottom:8px">
+    <label class="lbl">Resolution Notes</label>
+    <textarea class="inp" id="CC_REM" style="height:46px;margin-bottom:10px" placeholder="How was the issue resolved?"></textarea>
+    <button class="btn" onclick="cancelCC()">Cancel</button>&nbsp;
+    <button class="btn b-green" onclick="confirmCC()">Confirm & Close Ticket</button>
+  </div>
+
+  <div id="EP_DIV" style="display:none" class="ep">
+    <div style="font-size:14px;font-weight:700;color:#6264A7;margin-bottom:12px">✏ Editing Ticket <span id="EP_NUM"></span></div>
+    <table class="ft"><tbody>
+      <tr>
+        <td width="25%"><label class="lbl">Customer ID</label><div class="elock"><b>BLEND</b></div></td>
+        <td width="25%"><label class="lbl">Ticket No.</label><div class="elock" id="EP_ID" style="font-family:'Courier New';font-size:14px;font-weight:700;color:#6264A7"></div></td>
+        <td width="25%"><label class="lbl">Raised On</label><div class="elock" id="EP_RO"></div></td>
+        <td width="25%"><label class="lbl">Target Date</label><input type="date" class="inp" id="EP_TD"></td>
+      </tr>
+      <tr>
+        <td><label class="lbl">Category</label><select class="inp" id="EP_CAT" onchange="epSub()"></select></td>
+        <td><label class="lbl">Sub-category</label><select class="inp" id="EP_SUB"></select></td>
+        <td><label class="lbl">Priority</label><select class="inp" id="EP_PR"><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select></td>
+        <td><label class="lbl">Status</label><select class="inp" id="EP_ST"><option>Open</option><option>In Progress</option><option>On Hold</option><option>Pending Closure</option></select></td>
+      </tr>
+      <tr>
+        <td colspan="2"><label class="lbl">Assigned To</label><input class="inp" id="EP_AS"></td>
+        <td><label class="lbl">Assignee Email</label><input class="inp" id="EP_AE" type="email"></td>
+        <td><label class="lbl">Mobile</label><input class="inp" id="EP_MB"></td>
+      </tr>
+      <tr>
+        <td colspan="2"><label class="lbl">Raised By</label><input class="inp" id="EP_BY"></td>
+        <td colspan="2"><label class="lbl">Requester Email</label><input class="inp" id="EP_EM" type="email"></td>
+      </tr>
+      <tr><td colspan="4"><label class="lbl">Subject</label><input class="inp" id="EP_SJ"></td></tr>
+      <tr><td colspan="4"><label class="lbl">Description / Notes</label><textarea class="inp" id="EP_DS" style="height:52px"></textarea></td></tr>
+    </tbody></table>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+      <button class="btn b-sm" onclick="closeEP()">Cancel</button>
+      <button class="btn b-blue b-sm" onclick="saveTkt()" id="BTN_SAV">💾 Save & Notify</button>
+      <button class="btn b-sm b-amber" onclick="markPend()" id="BTN_PND">✓ Mark Resolved</button>
+      <button class="btn b-green b-sm" onclick="openCC()" id="BTN_CC" style="display:none">🔒 Confirm Closure</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="srch"><span>🔍</span><input id="A_Q" placeholder="Search ticket no, subject, name, email..." oninput="renderAdm()"></div>
+    <select class="fsel" id="A_CAT" onchange="renderAdm()"><option value="">All Categories</option></select>
+    <select class="fsel" id="A_ST" onchange="renderAdm()"><option value="">All Status</option><option>Open</option><option>In Progress</option><option>On Hold</option><option>Pending Closure</option><option>Closed</option></select>
+    <select class="fsel" id="A_PR" onchange="renderAdm()"><option value="">All Priority</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">
+  <table class="tktbl">
+    <thead><tr><th>No.</th><th>Category</th><th>Subject</th><th>Raised By</th><th>Priority</th><th>Status</th><th>Assigned To</th><th>Target / Raised</th><th>Edit</th></tr></thead>
+    <tbody id="ADM_BODY"></tbody>
+  </table></div></div>
+</div>
+</div><!-- /PG_ADM -->
+
+<script>
+// ════════════════════════════════════════════
+//  CONFIG — edit these values
+// ════════════════════════════════════════════
+var PASS = 'admin123';           // Change this password
+var FLOW_NEW    = '';            // Power Automate flow URL (optional)
+var FLOW_UPDATE = '';
+var FLOW_CLOSED = '';
+
+// ════════════════════════════════════════════
+//  DIRECTORY (all staff emails)
+// ════════════════════════════════════════════
+var DIRECTORY=[];// Loaded from SharePoint
+
+function loadDirectory(){
+  // Load staff directory from SharePoint list
+  var spSite='https://blendgroupin.sharepoint.com/sites/BlendERPTicket';
+  fetch(spSite+"/_api/web/lists/getbytitle('BlendDirectory')/items?$select=StaffName,StaffEmail&$top=500",{
+    headers:{'Accept':'application/json;odata=verbose'},credentials:'include'
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.d&&d.d.results&&d.d.results.length>0){
+      DIRECTORY=d.d.results.map(function(i){return{name:i.StaffName,email:i.StaffEmail};});
+      console.log('Directory loaded:',DIRECTORY.length,'staff');
+    }
+  })
+  .catch(function(){
+    // If SharePoint not available use fallback minimal list
+    DIRECTORY=[
+      {name:'It Admin',email:'it.admin@blendgroup.in'},
+      {name:'Helpdesk',email:'helpdesk@blendgroup.in'},
+      {name:'Mounika Kolluru',email:'mounika.kolluru@blendgroup.in'}
+    ];
+  });
+}
+
+function loadCustom(){try{var c=localStorage.getItem('b_custom');return c?JSON.parse(c):[];}catch(e){return[];}}
+function saveCustom(n,e){try{var c=loadCustom();if(!c.some(function(x){return x.email.toLowerCase()===e.toLowerCase();})&&!DIRECTORY.some(function(x){return x.email.toLowerCase()===e.toLowerCase();})){c.push({name:n,email:e});localStorage.setItem('b_custom',JSON.stringify(c));}}catch(e){}}
+function allPeople(){return DIRECTORY.concat(loadCustom());}
+
+var CATS={
+  'HR':['Leave Request','Payroll Issue','Recruitment','Onboarding','Policy Query','Offboarding','Attendance','Appraisal','Training','Other'],
+  'Warehouse':['Stock Discrepancy','Damaged Goods','Space Allocation','Equipment Fault','Safety Issue','Inward Receipt','Outward Dispatch','Other'],
+  'Inventory':['Stock Update','Item Not Found','Reorder Request','Audit Query','System Error','Expiry Alert','Barcode Issue','Other'],
+  'Sales':['Order Issue','Quote Request','Customer Complaint','Pricing Query','Contract','Commission','Target Query','Other'],
+  'Finance':['Invoice Query','Payment Delay','Expense Claim','Budget Request','Audit','Reconciliation','Tax Query','Credit Note','Other'],
+  'Dispatch':['Delivery Delay','Wrong Item Shipped','Address Error','Courier Issue','Returns','POD Missing','Other'],
+  'Purchase':['PO Request','Vendor Issue','Price Discrepancy','Approval Pending','New Vendor','GRN Issue','Other'],
+  'IT':['Hardware Fault','Software Bug','Access Request','Network Issue','Email Problem','System Downtime','Other'],
+  'Admin':['Office Supply','Facility Request','Meeting Room','Visitor Access','Document Request','Housekeeping','Other'],
+  'Operations':['Process Query','SOP Update','Machine Downtime','Shift Issue','Quality Issue','Production Plan','Other'],
+  'Marketing':['Campaign Request','Artwork Approval','Brand Guideline','Social Media','Event Support','Other'],
+  'Logistics':['Route Query','Vehicle Issue','Driver Problem','Load Planning','Fuel Claim','Transit Damage','Other'],
+  'Others':['General Query','Feedback','Complaint','Suggestion','Other']
+};
+var CK=Object.keys(CATS);
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+var tkts=[],mlog=[],cnt=1,curId=null,selAsgn=[];
+var CU={name:'',email:'',local:'',initials:''};
+var SP_SITE=''; // Auto-detected from URL
+var SP_LIST_ID=''; // list ID once discovered
+
+// ════════════════════════════════════════════
+//  LOCAL STORAGE (always used as fast cache)
+// ════════════════════════════════════════════
+var LS_TKT='b_tkts_v3', LS_CNT='b_cnt_v3', LS_LOG='b_log_v3', LS_SP='b_sp_url';
+
+function lsSave(){
+  try{
+    localStorage.setItem(LS_TKT,JSON.stringify(tkts));
+    localStorage.setItem(LS_CNT,String(cnt));
+    localStorage.setItem(LS_LOG,JSON.stringify(mlog.slice(0,300)));
+  }catch(e){}
+}
+function lsLoad(){
+  try{
+    var t=localStorage.getItem(LS_TKT);tkts=t?JSON.parse(t):[];
+    var c=localStorage.getItem(LS_CNT);cnt=c?parseInt(c,10):1;
+    var l=localStorage.getItem(LS_LOG);mlog=l?JSON.parse(l):[];
+    SP_SITE=(localStorage.getItem(LS_SP)||'').replace(/\/+$/,'');
+  }catch(e){tkts=[];cnt=1;mlog=[];SP_SITE='';}
+}
+
+// ════════════════════════════════════════════
+//  SHAREPOINT / MICROSOFT LISTS INTEGRATION
+//  Uses SharePoint REST API with cookies (works
+//  when hosted on SharePoint or opened by M365 user)
+// ════════════════════════════════════════════
+var SP_LIST_NAME='BlendERPTickets';
+
+function spApi(path,opts){
+  if(!SP_SITE)return Promise.reject('No SP URL');
+  var url=SP_SITE+'/_api/'+path;
+  var headers={'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'};
+  if(opts&&opts.headers)Object.assign(headers,opts.headers);
+  return fetch(url,Object.assign({credentials:'include',headers:headers},opts||{}));
+}
+
+function spDigest(){
+  return spApi('contextinfo',{method:'POST'})
+    .then(function(r){return r.json();})
+    .then(function(d){return d.d.GetContextWebInformation.FormDigestValue;});
+}
+
+function spGetAllTickets(){
+  return spApi("web/lists/getbytitle('"+SP_LIST_NAME+"')/items?$select=TicketId,TicketData&$top=5000&$orderby=Id desc")
+    .then(function(r){
+      if(!r.ok)throw new Error('List not found');
+      return r.json();
+    })
+    .then(function(d){
+      var items=d.d&&d.d.results?d.d.results:[];
+      // Find master record
+      var master=items.filter(function(i){return i.TicketId==='__MASTER__';})[0];
+      if(master&&master.TicketData){
+        try{
+          var p=JSON.parse(master.TicketData);
+          if(p.tkts){return{tkts:p.tkts,cnt:p.cnt,masterId:master.Id};}
+        }catch(e){}
+      }
+      return{tkts:[],cnt:1,masterId:null};
+    });
+}
+
+
+function spSaveTicket(t){
+  if(!SP_SITE)return;
+  spDigest().then(function(digest){
+    var body=JSON.stringify({
+      __metadata:{type:'SP.Data.BlendERPTicketsListItem'},
+      Title: t.id,
+      TicketId: t.id,
+      TicketData: JSON.stringify(t),
+      AssigneeEmail: t.aEmail||'',
+      AssigneeName: t.assign||'',
+      Subject: t.subj||'',
+      Category: (t.cat||'')+(t.sub?' - '+t.sub:''),
+      Priority: t.prio||'',
+      RaisedBy: t.by||'',
+      RequesterEmail: t.email||'',
+      RequesterMobile: t.mob||''
+    });
+    spApi("web/lists/getbytitle('BlendERPTickets')/items",{
+      method:'POST',credentials:'include',
+      headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},
+      body:body
+    }).then(function(){
+      setStatus('ok','✅ Ticket #'+t.id+' saved to SharePoint');
+    }).catch(function(e){
+      console.log('SP ticket save error:',e);
+    });
+  }).catch(function(){});
+}
+
+function spSaveAll(){
+  if(!SP_SITE)return;
+  spDigest().then(function(digest){
+    var body=JSON.stringify({
+      __metadata:{type:'SP.Data.'+SP_LIST_NAME+'ListItem'},
+      TicketId:'__MASTER__',
+      TicketData:JSON.stringify({tkts:tkts,cnt:cnt,updated:new Date().toISOString()})
+    });
+    // Check if master exists
+    spApi("web/lists/getbytitle('"+SP_LIST_NAME+"')/items?$filter=TicketId eq '__MASTER__'&$top=1&$select=Id",{credentials:'include'})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var items=d.d&&d.d.results?d.d.results:[];
+        if(items.length>0){
+          // UPDATE existing
+          var id=items[0].Id;
+          return spApi("web/lists/getbytitle('"+SP_LIST_NAME+"')/items("+id+")",{
+            method:'POST',credentials:'include',
+            headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'X-HTTP-Method':'MERGE','If-Match':'*'}
+          ,body:body});
+        } else {
+          // CREATE new
+          return spApi("web/lists/getbytitle('"+SP_LIST_NAME+"')/items",{
+            method:'POST',credentials:'include',
+            headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},
+            body:body
+          });
+        }
+      })
+      .then(function(){setStatus('ok','✅ Synced to Microsoft Lists — '+tkts.length+' tickets');})
+      .catch(function(e){setStatus('err','⚠ Local only — SharePoint sync failed');});
+  }).catch(function(){setStatus('err','⚠ Local only — SharePoint auth failed');});
+}
+
+function autoDetectSP(){
+  try{
+    var loc=window.location.href;
+    if(loc.indexOf('sharepoint.com')>=0){
+      var m=loc.match(/(https:\/\/[^\/]+\.sharepoint\.com\/sites\/[^\/]+)/);
+      if(m&&m[1]){SP_SITE=m[1];try{localStorage.setItem(LS_SP,SP_SITE);}catch(e){}return true;}
+    }
+  }catch(e){}
+  return false;
+}
+
+function connectSP(){
+  var url=(G('SP_URL_IN').value||'').trim().replace(/\/+$/,'');
+  if(!url){
+    if(autoDetectSP()){url=SP_SITE;}
+    else{showToast('Enter SharePoint URL','err');return;}
+  }
+  SP_SITE=url;
+  try{localStorage.setItem(LS_SP,url);}catch(e){}
+  var msg=G('SP_TEST_MSG');
+  msg.style.display='block';msg.style.color='#92400E';msg.textContent='Connecting...';
+  setStatus('loading','Connecting to Microsoft Lists...');
+  spGetAllTickets()
+    .then(function(data){
+      if(data.tkts.length>0||data.masterId){
+        tkts=data.tkts;cnt=data.cnt||Math.max(cnt,tkts.length+1);lsSave();
+        msg.style.color='#237B4B';
+        msg.textContent='✅ Connected! Loaded '+tkts.length+' tickets.';
+        setStatus('ok','✅ SharePoint connected — '+tkts.length+' tickets');
+      } else {
+        msg.style.color='#237B4B';
+        msg.textContent='✅ Connected! Ready to store tickets permanently.';
+        spSaveAll();
+        setStatus('ok','✅ SharePoint connected — ready');
+      }
+      var c=G('SCNT');if(c)c.textContent=tkts.length+' tickets';
+      renderAdm();showToast('SharePoint connected!','ok');
+      G('SETUP_DIV').style.display='none';
+    })
+    .catch(function(err){
+      msg.style.color='#C4314B';
+      msg.textContent='❌ Failed. Open this file FROM SharePoint (not downloaded). Error: '+String(err);
+      setStatus('err','⚠ Local storage only');
+    });
+}
+
+// ════════════════════════════════════════════
+//  TEAMS SDK
+// ════════════════════════════════════════════
+function initTeams(){
+  try{
+    microsoftTeams.app.initialize().then(function(){
+      microsoftTeams.app.getContext().then(function(ctx){
+        if(!ctx||!ctx.user)return;
+        var n=ctx.user.displayName||'';
+        var e=ctx.user.loginHint||ctx.user.userPrincipalName||'';
+        if(e)applyUser(n||e.split('@')[0],e);
+      }).catch(function(){});
+    }).catch(function(){});
+  }catch(e){}
+}
+function applyUser(n,e){
+  if(!e||e.indexOf('@')<0)return;
+  CU.name=n;CU.email=e;CU.local=e.split('@')[0];
+  var p=n.split(' ');CU.initials=((p[0]||'')[0]||'').toUpperCase()+((p[1]||'')[0]||'').toUpperCase();
+  var av=G('UAV'),un=G('UNM');
+  if(av)av.textContent=CU.initials||'U';
+  if(un)un.textContent=n||e;
+  var fn=G('F_NM');if(fn&&!fn.value)fn.value=n;
+  var fe=G('F_EM');if(fe&&!fe.value)fe.value=e;
+  var ms=G('MY_SUB');if(ms)ms.textContent='Tickets for '+e;
+}
+
+// ════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════
+function G(id){return document.getElementById(id);}
+function GV(id){var e=G(id);return e?e.value.trim():'';}
+function today(){return new Date().toISOString().slice(0,10);}
+function fmt(s){if(!s)return'—';var d=new Date(s);if(isNaN(d))return'—';return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+function diff(s){if(!s)return null;var n=new Date();n.setHours(0,0,0,0);var t=new Date(s);t.setHours(0,0,0,0);return Math.round((t-n)/86400000);}
+function nid(){var s=String(cnt++);while(s.length<3)s='0'+s;return s;}
+function logM(tp,id,to,sb){mlog.unshift({ts:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),tp:tp,id:id,to:to,sb:sb});}
+
+var _tt=null;
+function showToast(m,type){
+  var e=G('TOAST');e.textContent=m;
+  e.className='toast'+(type?' '+type:'');e.style.display='block';
+  if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){e.style.display='none';},4000);
+}
+function showMbar(m){var e=G('MBAR');e.innerHTML=m;e.style.display='block';}
+function showLoad(m){G('LMSG').textContent=m||'Loading...';G('LOV').style.display='flex';}
+function hideLoad(){G('LOV').style.display='none';}
+function setStatus(state,msg){
+  var d=G('SDOT'),t=G('STXT');
+  if(d){d.className='status-dot'+(state?' '+state:'');}
+  if(t)t.textContent=msg;
+}
+function showSetup(){G('SETUP_DIV').style.display=G('SETUP_DIV').style.display==='none'?'block':'none';if(SP_SITE&&G('SP_URL_IN'))G('SP_URL_IN').value=SP_SITE;}
+
+function sbadge(s){var m={Open:'s-open','In Progress':'s-prog','On Hold':'s-hold','Pending Closure':'s-pend',Closed:'s-closed'};return'<span class="badge '+(m[s]||'s-open')+'">'+s+'</span>';}
+function pbadge(p){var m={Urgent:'p-urgent',High:'p-high',Medium:'p-medium',Low:'p-low'};return'<span class="badge '+(m[p]||'p-medium')+'">'+p+'</span>';}
+function dbadge(t){if(t.status==='Closed')return'<span class="dok">✓ Closed</span>';var d=diff(t.td);if(d===null)return'<span class="dn">No target</span>';if(d<0)return'<span class="do">Overdue '+Math.abs(d)+'d</span>';if(d===0)return'<span class="do">Due today</span>';if(d===1)return'<span class="dw">Tomorrow</span>';return'<span class="dok">'+fmt(t.td)+'</span>';}
+
+// ════════════════════════════════════════════
+//  PAGES
+// ════════════════════════════════════════════
+function showPg(id){['PG_PUB','PG_LOGIN','PG_ADM'].forEach(function(v){var e=G(v);if(e)e.style.display='none';});G(id).style.display='block';window.scrollTo(0,0);}
+function goAdmin(){G('L_ERR').style.display='none';G('L_PW').value='';showPg('PG_LOGIN');setTimeout(function(){if(G('L_PW'))G('L_PW').focus();},200);}
+function doLogout(){showPg('PG_PUB');}
+function doLogin(){
+  if(G('L_PW').value===PASS){
+    G('L_ERR').style.display='none';G('L_PW').value='';
+    initAdm();showPg('PG_ADM');doRefresh();
+  }else{G('L_ERR').style.display='block';}
+}
+G('L_PW').onkeydown=function(e){if(e.key==='Enter')doLogin();};
+
+function doRefresh(){
+  // Auto-detect SharePoint site if not set
+  if(!SP_SITE) autoDetectSP();
+  if(SP_SITE){
+    setStatus('loading','Loading from Microsoft Lists...');
+    showLoad('Loading tickets from Microsoft Lists...');
+    spGetAllTickets()
+      .then(function(data){
+        hideLoad();
+        tkts=data.tkts;cnt=data.cnt||Math.max(cnt,tkts.length+1);
+        lsSave();
+        var c=G('SCNT');if(c)c.textContent=tkts.length+' total tickets';
+        setStatus('ok','✅ Microsoft Lists — '+tkts.length+' tickets loaded');
+        renderAdm();showToast('Refreshed: '+tkts.length+' tickets','ok');
+      })
+      .catch(function(){
+        hideLoad();
+        setStatus('err','⚠ SharePoint unreachable — showing local data');
+        renderAdm();
+      });
+  } else {
+    setStatus('err','📌 Local storage only — set up Microsoft Lists for team sharing');
+    var c=G('SCNT');if(c)c.textContent=tkts.length+' local tickets';
+    renderAdm();
+  }
+}
+
+function goTab(n){
+  G('V1').style.display=n===1?'block':'none';
+  G('V2').style.display=n===2?'block':'none';
+  G('V3').style.display=n===3?'block':'none';
+  [G('T1'),G('T2'),G('T3')].forEach(function(t,i){if(t)t.classList.toggle('on',i===n-1);});
+  if(n===2)renderMy();
+}
+
+// ════════════════════════════════════════════
+//  CATEGORIES
+// ════════════════════════════════════════════
+function fillSel(id,opts){var el=G(id);if(!el)return;el.innerHTML='';opts.forEach(function(o){var x=document.createElement('option');x.value=o.v!==undefined?o.v:o;x.text=o.t!==undefined?o.t:o;el.appendChild(x);});}
+function updSub(){var cat=GV('F_CAT'),sub=G('F_SUB');if(!sub)return;sub.innerHTML='';(CATS[cat]||[]).forEach(function(s){var o=document.createElement('option');o.value=s;o.text=s;sub.appendChild(o);});}
+function epSub(){var cat=GV('EP_CAT'),sub=G('EP_SUB');if(!sub)return;sub.innerHTML='';(CATS[cat]||[]).forEach(function(s){var o=document.createElement('option');o.value=s;o.text=s;sub.appendChild(o);});}
+function initAdm(){
+  fillSel('A_CAT',[{v:'',t:'All Categories'}].concat(CK.map(function(k){return{v:k,t:k};})));
+  fillSel('EP_CAT',CK);
+  G('EP_CAT').onchange=epSub;
+}
+
+function boot(){
+  lsLoad();
+  var fd=G('F_DT');if(fd&&!fd.textContent)fd.textContent=fmt(today());
+  fillSel('F_CAT',CK);
+  G('F_CAT').onchange=updSub;
+  if(CK.length)updSub();
+}
+document.addEventListener('DOMContentLoaded',function(){boot();initTeams();loadDirectory();});
+window.addEventListener('load',function(){boot();});
+setTimeout(boot,200);
+
+// ════════════════════════════════════════════
+//  ASSIGNEE CHIPS
+// ════════════════════════════════════════════
+function showSug(){
+  var q=(GV('F_AE')||'').toLowerCase(),list=G('SUGLIST'),pool=allPeople();
+  if(!q){list.style.display='none';return;}
+  var f=pool.filter(function(a){return(a.name.toLowerCase().indexOf(q)>=0||a.email.toLowerCase().indexOf(q)>=0)&&!selAsgn.some(function(s){return s.email===a.email;});}).slice(0,8);
+  if(!f.length){list.style.display='none';return;}
+  list.innerHTML=f.map(function(a,i){return'<div class="sug-item" onmousedown="pickSugIdx('+i+')"><div class="sug-name">'+a.name+'</div><div class="sug-email">'+a.email+'</div></div>';}).join('');
+  list._items=f;list.style.display='block';
+}
+function hideSug(){setTimeout(function(){var l=G('SUGLIST');if(l)l.style.display='none';},200);}
+function pickSug(n,e){G('F_AN').value=n;G('F_AE').value=e;G('SUGLIST').style.display='none';}
+function pickSugIdx(i){var list=G('SUGLIST');var a=list._items[i];if(a)pickSug(a.name,a.email);}
+function addAsgn(){
+  var e=GV('F_AE');
+  if(!e||e.indexOf('@')<0){showToast('Please enter a valid email','err');return;}
+  if(selAsgn.some(function(a){return a.email.toLowerCase()===e.toLowerCase();})){showToast(e+' already added','err');return;}
+  var n=GV('F_AN')||'';
+  if(!n){var m=allPeople().filter(function(s){return s.email.toLowerCase()===e.toLowerCase();})[0];n=m?m.name:e.split('@')[0].split('.').map(function(p){return p.charAt(0).toUpperCase()+p.slice(1);}).join(' ');}
+  selAsgn.push({name:n,email:e});saveCustom(n,e);renderChips();
+  G('F_AN').value='';G('F_AE').value='';G('SUGLIST').style.display='none';
+}
+function renderChips(){
+  var c=G('CHIPS');if(!c)return;
+  c.innerHTML=selAsgn.length?selAsgn.map(function(a,i){return'<span class="chip">'+a.name+' &lt;'+a.email+'&gt;<span class="chipx" onclick="remAsgn('+i+')">✕</span></span>';}).join(''):'';
+}
+function remAsgn(i){selAsgn.splice(i,1);renderChips();}
+
+// ════════════════════════════════════════════
+//  SUBMIT TICKET
+// ════════════════════════════════════════════
+function doSubmit(){
+  var sj=GV('F_SJ'),nm=GV('F_NM'),mb=GV('F_MB'),em=GV('F_EM');
+  var pe=GV('F_AE');
+  if(pe&&pe.indexOf('@')>-1&&!selAsgn.some(function(a){return a.email===pe;})){
+    var pn=GV('F_AN')||'';
+    if(!pn){var mm=allPeople().filter(function(s){return s.email.toLowerCase()===pe.toLowerCase();})[0];pn=mm?mm.name:pe.split('@')[0].split('.').map(function(p){return p.charAt(0).toUpperCase()+p.slice(1);}).join(' ');}
+    selAsgn.push({name:pn,email:pe});saveCustom(pn,pe);renderChips();
+  }
+  if(!sj){showToast('Subject is required','err');return;}
+  if(!nm){showToast('Full Name is required','err');return;}
+  if(!mb||mb.length<10){showToast('Valid 10-digit mobile required','err');return;}
+  if(!em||em.indexOf('@')<0){showToast('Valid email required','err');return;}
+  if(!selAsgn.length){showToast('Add at least one assignee','err');return;}
+
+  var fullEM=em.indexOf('@')>-1?em:em+'@blendgroup.in';
+  var fullMB='+91-'+mb;
+  var id=nid();
+  var aNames=selAsgn.map(function(a){return a.name;}).join(', ');
+  var aEmails=selAsgn.map(function(a){return a.email;}).join(', ');
+  var t={id:id,cat:GV('F_CAT'),sub:GV('F_SUB'),subj:sj,by:nm,mob:fullMB,email:fullEM,
+    prio:GV('F_PR'),status:'Open',assign:aNames,aEmail:aEmails,assignees:selAsgn.slice(),
+    raisedOn:today(),td:'',desc:GV('F_DS')||'',closedOn:''};
+
+  tkts.unshift(t);
+  lsSave();
+  // Save individual ticket to SharePoint with all columns (for Power Automate)
+  if(SP_SITE)spSaveTicket(t);
+  // Save master record to SharePoint
+  spSaveAll();
+  logM('New',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
+  if(FLOW_NEW)fetch(FLOW_NEW,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)}).catch(function(){});
+
+  // Teams notify buttons
+  var portalUrl='https://blendgroupin.sharepoint.com/sites/BlendERPTicket/Shared%20Documents/Blend_ERP_ULTIMATE.html';
+  var btns='';
+  selAsgn.forEach(function(a){
+    var eSubj='New Support Ticket #'+id+': '+sj;
+    var eBody='Hi '+a.name+',\n\nA new support ticket has been assigned to you.\n\nTicket No: '+id+'\nSubject: '+sj+'\nCategory: '+t.cat+' - '+t.sub+'\nPriority: '+t.prio+'\nRaised By: '+nm+'\nMobile: '+fullMB+'\nEmail: '+fullEM+'\nDate: '+fmt(t.raisedOn)+(t.desc?'\nDescription: '+t.desc:'')+'\n\nView and action here:\n'+decodeURIComponent(portalUrl)+'\n\nPlease action at the earliest.\n-- Blend ERP Support';
+    btns+='<a href="mailto:'+a.email+'?subject='+encodeURIComponent(eSubj)+'&body='+encodeURIComponent(eBody)+'" class="btn b-blue" style="text-decoration:none;display:block;margin-bottom:6px;text-align:center">📧 Email '+a.name+'</a>';
+    var tMsg='Hi '+encodeURIComponent(a.name)+', New Ticket #'+id+' assigned.%0ASubject: '+encodeURIComponent(sj)+'%0ACategory: '+encodeURIComponent(t.cat+' - '+t.sub)+'%0APriority: '+t.prio+'%0ARaised By: '+encodeURIComponent(nm)+' ('+encodeURIComponent(fullEM)+')%0A%0APlease action at earliest.%0A-- Blend ERP Support';
+    btns+='<a href="https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(a.email)+'&message='+tMsg+'" target="_blank" class="btn" style="text-decoration:none;display:block;margin-bottom:6px;text-align:center;background:#464775;color:#fff;border-color:#464775">💬 Teams: '+a.name+'</a>';
+  });
+  var rSubj='Your Support Ticket #'+id+' Raised — Blend ERP';
+  var rBody='Hi '+nm+',\n\nYour support ticket has been raised successfully.\n\nTicket No: '+id+'\nSubject: '+sj+'\nCategory: '+t.cat+' - '+t.sub+'\nPriority: '+t.prio+'\nAssigned To: '+aNames+'\nDate: '+fmt(t.raisedOn)+'\n\nTrack your ticket:\n'+decodeURIComponent(portalUrl)+'\n\nWe will keep you updated.\n-- Blend ERP Support';
+  btns+='<a href="mailto:'+fullEM+'?subject='+encodeURIComponent(rSubj)+'&body='+encodeURIComponent(rBody)+'" class="btn" style="text-decoration:none;display:block;margin-bottom:6px;text-align:center">📧 Confirm to Requester</a>';
+
+  G('S_NUM').textContent=id;
+  G('S_META').innerHTML='<table style="width:100%;font-size:13px"><tr><td style="color:#605E5C">Raised On</td><td style="color:#605E5C">Category</td><td style="color:#605E5C">Priority</td></tr><tr><td style="font-weight:700">'+fmt(today())+'</td><td style="font-weight:700">'+t.cat+' › '+t.sub+'</td><td style="font-weight:700">'+t.prio+'</td></tr><tr><td style="color:#605E5C;padding-top:8px">Assigned To</td><td colspan="2" style="color:#605E5C;padding-top:8px">Assignee Email</td></tr><tr><td style="font-weight:700">'+aNames+'</td><td colspan="2" style="font-weight:700">'+aEmails+'</td></tr></table>';
+  G('S_MSG').innerHTML='<b style="display:block;margin-bottom:8px">💬 Click to notify via Teams (opens chat with message pre-filled):</b><div style="display:flex;flex-direction:column;gap:6px">'+btns+'</div>';
+  selAsgn=[];renderChips();
+  G('FCARD').style.display='none';G('SCARD').style.display='block';window.scrollTo(0,0);
+  showToast('Ticket #'+id+' saved!','ok');
+}
+
+function doReset(){
+  ['F_SJ','F_DS','F_MB','F_AN','F_AE'].forEach(function(id){var e=G(id);if(e)e.value='';});
+  selAsgn=[];renderChips();
+  if(G('F_PR'))G('F_PR').value='Medium';
+  if(!CU.email){['F_NM','F_EM'].forEach(function(id){var e=G(id);if(e)e.value='';});}
+  G('FCARD').style.display='block';G('SCARD').style.display='none';
+}
+
+// ════════════════════════════════════════════
+//  MY TICKETS
+// ════════════════════════════════════════════
+function renderMy(){
+  var el=G('MY_LIST');if(!el)return;
+  var rawEM=GV('F_EM')||'';
+  var em=CU.email||(rawEM.indexOf('@')>-1?rawEM:'');
+  var mine=em?tkts.filter(function(t){return(t.email||'').toLowerCase()===em.toLowerCase();}):[];
+  if(!mine.length){el.innerHTML='<div class="empty">'+(em?'No tickets found for <b>'+em+'</b>.':'Please enter your email in the New Ticket form first.')+'<br><br><button class="btn b-blue" onclick="goTab(1)" style="padding:8px 20px;margin-top:8px">+ Raise First Ticket</button></div>';return;}
+  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'];var html='';
+  mine.forEach(function(t){
+    var ci=SO.indexOf(t.status);var lc=t.prio==='Urgent'?'urg':t.status==='Closed'?'cls':'';
+    html+='<div class="tkt-card '+lc+'"><table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424;margin-top:2px">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' › '+t.sub+'</div></td><td style="text-align:right;vertical-align:top;white-space:nowrap">'+sbadge(t.status)+'<br>'+pbadge(t.prio)+'</td></tr></table>';
+    html+='<div style="background:#F5F5F5;border-radius:5px;padding:9px;margin-bottom:10px;font-size:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div><div style="color:#605E5C;font-size:11px">Raised On</div><div style="font-weight:700;margin-top:2px">'+fmt(t.raisedOn)+'</div></div><div><div style="color:#605E5C;font-size:11px">Target</div><div style="font-weight:700;margin-top:2px">'+(t.td?fmt(t.td):'Not set')+'</div></div><div><div style="color:#605E5C;font-size:11px">Assigned To</div><div style="font-weight:700;margin-top:2px">'+t.assign+'</div></div></div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';html+='<span style="font-size:11px;padding:3px 8px;border-radius:3px;font-weight:'+(act?'700':'400')+';background:'+(done?'#DCFCE7':act?'#EEF2FF':'#F5F5F5')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</span>';});
+    html+='</div>';
+    if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════
+//  TRACK
+// ════════════════════════════════════════════
+function doTrack(){
+  var q=(GV('TRK_Q')||'').toLowerCase().trim();var el=G('TRK_RES');if(!q){el.innerHTML='';return;}
+  var found=tkts.filter(function(t){return t.id===q||(t.email||'').toLowerCase()===q;});
+  if(!found.length){el.innerHTML='<div style="padding:20px;text-align:center;background:#F5F5F5;border-radius:8px;color:#605E5C">No ticket found for "<b>'+q+'</b>". Please check the ticket number or email.</div>';return;}
+  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'];var html='';
+  found.forEach(function(t){
+    var ci=SO.indexOf(t.status);
+    html+='<div class="tkt-card"><table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424;margin-top:2px">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' › '+t.sub+'</div></td><td style="text-align:right;vertical-align:top">'+sbadge(t.status)+'<br><span style="font-size:11px;color:#605E5C">'+t.prio+'</span></td></tr></table>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';html+='<span style="font-size:11px;padding:3px 8px;border-radius:3px;font-weight:'+(act?'700':'400')+';background:'+(done?'#DCFCE7':act?'#EEF2FF':'#F5F5F5')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</span>';});
+    html+='</div>';
+    if(t.status==='Closed')html+='<div style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════
+//  ADMIN PANEL
+// ════════════════════════════════════════════
+function filtered(){
+  var q=(GV('A_Q')||'').toLowerCase(),fc=GV('A_CAT'),fs=GV('A_ST'),fp=GV('A_PR');
+  return tkts.filter(function(t){
+    return(!q||(t.id+t.subj+t.by+t.email+t.cat+t.assign).toLowerCase().indexOf(q)>=0)&&(!fc||t.cat===fc)&&(!fs||t.status===fs)&&(!fp||t.prio===fp);
+  });
+}
+
+function renderAdm(){
+  var list=filtered();
+  var urg=tkts.filter(function(t){return t.prio==='Urgent'&&t.status!=='Closed';}).length;
+  var ub=G('URG_B');if(ub){ub.textContent=urg+' Urgent';ub.style.display=urg?'inline':'none';}
+  var c={Open:0,'In Progress':0,'On Hold':0,'Pending Closure':0,Closed:0,Overdue:0};
+  list.forEach(function(t){if(c[t.status]!==undefined)c[t.status]++;var d=diff(t.td);if(t.status!=='Closed'&&d!==null&&d<0)c.Overdue++;});
+  G('SUM_DIV').innerHTML='<div class="sumbar"><div class="sc"><div class="scv" style="color:#3730A3">'+c.Open+'</div><div class="scl">Open</div></div><div class="sc"><div class="scv" style="color:#713F12">'+c['In Progress']+'</div><div class="scl">In Progress</div></div><div class="sc"><div class="scv" style="color:#374151">'+c['On Hold']+'</div><div class="scl">On Hold</div></div><div class="sc"><div class="scv" style="color:#6B21A8">'+c['Pending Closure']+'</div><div class="scl">Pending</div></div><div class="sc"><div class="scv" style="color:#237B4B">'+c.Closed+'</div><div class="scl">Closed</div></div><div class="sc"><div class="scv" style="color:#C4314B">'+c.Overdue+'</div><div class="scl">Overdue</div></div></div>';
+  var ov=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)!==null&&diff(t.td)<0;});
+  var pend=tkts.filter(function(t){return t.status==='Pending Closure';});
+  var ah='';
+  if(ov.length)ah+='<div class="al al-w">⚠ <b>'+ov.length+' overdue:</b> '+ov.map(function(t){return'#'+t.id;}).join(', ')+'</div>';
+  if(pend.length)ah+='<div class="al al-p">🔒 <b>Pending closure confirmation:</b> '+pend.map(function(t){return'#'+t.id+' ('+t.by+')';}).join(', ')+'</div>';
+  G('ALT_DIV').innerHTML=ah;
+  var tbody=G('ADM_BODY');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" class="empty">'+(tkts.length===0?'No tickets yet — submit one from the portal.':'No tickets match your filter.')+'</td></tr>';return;}
+  tbody.innerHTML=list.map(function(t){
+    var d=diff(t.td);var bg='';
+    if(curId===t.id)bg='background:#EEF2FF;';else if(t.status!=='Closed'&&d!==null&&d<0)bg='background:#FEF2F2;';else if(t.status!=='Closed'&&d===1)bg='background:#FFFBEB;';
+    return'<tr style="'+bg+'"><td><span class="tid">'+t.id+'</span></td><td><span class="cpill">'+t.cat+'</span></td><td><div style="font-weight:600;font-size:12px;max-width:200px">'+t.subj+'</div><div style="font-size:10px;color:#605E5C">'+t.sub+'</div></td><td><div style="font-weight:600;font-size:12px">'+t.by+'</div><div style="font-size:10px;color:#605E5C">'+t.mob+'</div></td><td>'+pbadge(t.prio)+'</td><td>'+sbadge(t.status)+'</td><td><div style="font-weight:600;font-size:12px">'+t.assign+'</div><div style="font-size:10px;color:#605E5C">'+t.aEmail+'</div></td><td>'+dbadge(t)+'<div style="font-size:10px;color:#AAA;margin-top:2px">'+fmt(t.raisedOn)+'</div></td><td><button onclick="openEP(\''+t.id+'\')" class="btn b-blue b-sm">'+(t.status==='Closed'?'View':'Edit')+'</button></td></tr>';
+  }).join('');
+}
+
+function openEP(id){
+  var t=tkts.filter(function(x){return x.id===id;})[0];if(!t)return;curId=id;
+  var ic=t.status==='Closed',ip=t.status==='Pending Closure';
+  G('EP_NUM').textContent='#'+id;G('EP_ID').textContent=id;G('EP_RO').textContent=fmt(t.raisedOn);
+  G('EP_TD').value=t.td||'';G('EP_AS').value=t.assign;G('EP_AE').value=t.aEmail;
+  G('EP_MB').value=t.mob;G('EP_BY').value=t.by;G('EP_EM').value=t.email;
+  G('EP_SJ').value=t.subj;G('EP_DS').value=t.desc;
+  var ec=G('EP_CAT');
+  if(ec.options.length===0){CK.forEach(function(k){var o=document.createElement('option');o.value=k;o.text=k;ec.appendChild(o);});}
+  ec.value=t.cat;epSub();setTimeout(function(){G('EP_SUB').value=t.sub;},80);
+  G('EP_PR').value=t.prio;G('EP_ST').value=t.status;
+  [G('EP_TD'),G('EP_AS'),G('EP_AE'),G('EP_MB'),G('EP_BY'),G('EP_EM'),G('EP_SJ'),G('EP_DS'),G('EP_CAT'),G('EP_PR'),G('EP_ST')].forEach(function(e){if(e)e.disabled=ic;});
+  G('BTN_SAV').style.display=ic?'none':'inline-flex';
+  G('BTN_PND').style.display=(ic||ip)?'none':'inline-flex';
+  G('BTN_CC').style.display=ip?'inline-flex':'none';
+  var ep=G('EP_DIV');ep.style.display='block';
+  setTimeout(function(){ep.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  renderAdm();
+}
+function closeEP(){curId=null;G('EP_DIV').style.display='none';G('CC_WRAP').style.display='none';renderAdm();}
+
+function saveTkt(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  var prev={status:t.status,assign:t.assign,td:t.td};
+  t.cat=GV('EP_CAT');t.sub=GV('EP_SUB');t.prio=GV('EP_PR');t.status=GV('EP_ST');
+  t.td=GV('EP_TD');t.assign=GV('EP_AS');t.aEmail=GV('EP_AE');
+  t.by=GV('EP_BY');t.mob=GV('EP_MB');t.email=GV('EP_EM');t.subj=GV('EP_SJ');t.desc=GV('EP_DS');
+  var chg=[];
+  if(prev.status!==t.status)chg.push('Status → '+t.status);
+  if(prev.assign!==t.assign)chg.push('Assigned → '+t.assign);
+  if(prev.td!==t.td)chg.push('Target → '+fmt(t.td));
+  var chgT=chg.length?chg.join(', '):'Details updated';
+  logM('Update',curId,t.aEmail,'#'+curId+' — '+chgT);
+  lsSave();spSaveAll();
+  if(FLOW_UPDATE)fetch(FLOW_UPDATE,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)}).catch(function(){});
+  var btns='';
+  if(t.aEmail){var fae=t.aEmail.split(',')[0].trim();var fan=t.assign.split(',')[0].trim();var um='Hi '+encodeURIComponent(fan)+', Ticket #'+curId+' updated.%0AChange: '+encodeURIComponent(chgT)+'%0ASubject: '+encodeURIComponent(t.subj)+'%0ATarget: '+encodeURIComponent(fmt(t.td))+'%0A— Blend ERP Support';btns+='<a href="https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(fae)+'&message='+um+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 Notify Assignee</a> ';}
+  if(t.email){var rm='Hi '+encodeURIComponent(t.by)+', your Ticket #'+curId+' updated.%0AChange: '+encodeURIComponent(chgT)+'%0ATarget: '+encodeURIComponent(fmt(t.td))+'%0AAssigned To: '+encodeURIComponent(t.assign)+'%0A— Blend ERP Support';btns+='<a href="https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(t.email)+'&message='+rm+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 Notify Requester</a>';}
+  showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
+  showToast('Ticket #'+curId+' saved','ok');renderAdm();
+}
+
+function markPend(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  t.desc=GV('EP_DS');t.status='Pending Closure';
+  logM('Resolved',curId,t.email,'#'+curId+' resolved');lsSave();spSaveAll();
+  var msg='Hi '+encodeURIComponent(t.by)+', Ticket #'+curId+' ('+encodeURIComponent(t.subj)+') has been resolved by '+encodeURIComponent(t.assign)+'.%0APlease confirm you are satisfied so we can close the ticket.%0A— Blend ERP Support';
+  var btns='<a href="https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(t.email)+'&message='+msg+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 Notify Requester</a>';
+  showMbar('💬 Marked resolved. Notify:<br><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
+  showToast('Marked resolved','ok');closeEP();
+}
+
+function openCC(){G('CC_WRAP').style.display='block';G('CC_EM').value='';G('CC_REM').value='';G('CC_WRAP').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function cancelCC(){G('CC_WRAP').style.display='none';}
+function confirmCC(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  var em=G('CC_EM').value.trim();
+  if(!em){showToast('Enter requester email','err');return;}
+  if(em.toLowerCase()!==t.email.toLowerCase()){showToast('Email does not match requester record','err');return;}
+  var rem=G('CC_REM').value;t.status='Closed';t.closedOn=today();
+  if(rem)t.desc=t.desc+(t.desc?' | ':'')+'Resolution: '+rem;
+  logM('Closed',curId,t.email,'#'+curId+' closed');lsSave();spSaveAll();
+  if(FLOW_CLOSED)fetch(FLOW_CLOSED,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)}).catch(function(){});
+  var cm='Hi '+encodeURIComponent(t.by)+', your Ticket #'+curId+' is now CLOSED.%0AResolution: '+encodeURIComponent(rem||'Issue resolved')+'%0AThank you!%0A— Blend ERP Support';
+  var btns='<a href="https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(t.email)+'&message='+cm+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 Notify Requester</a>';
+  showMbar('💬 Ticket closed. Notify:<br><div style="margin-top:6px">'+btns+'</div>');
+  G('CC_WRAP').style.display='none';closeEP();showToast('Ticket #'+curId+' closed','ok');
+}
+
+function toggleML(){
+  var v=G('ML_WRAP');var show=v.style.display==='none'||!v.style.display;
+  G('ML_INNER').innerHTML=show&&mlog.length?mlog.map(function(m){return'<div style="padding:8px 0;border-bottom:1px solid #F0F0F0;font-size:12px"><span style="font-weight:700;color:#6264A7">'+m.tp+'</span> <span style="color:#AAA">#'+m.id+' · '+m.ts+'</span><div style="color:#252424;margin-top:2px">'+m.sb+'</div></div>';}).join(''):'<div class="empty">No activity yet.</div>';
+  v.style.display=show?'block':'none';
+}
+
+// ════════════════════════════════════════════
+//  EXCEL EXPORT
+// ════════════════════════════════════════════
+function doExport(){
+  if(!tkts.length){showToast('No tickets to export','err');return;}
+  var rows=[['Ticket No.','Customer ID','Category','Sub-category','Subject','Raised By','Mobile','Email','Priority','Status','Assigned To','Assignee Email','Raised On','Target Date','Closed On','Description']];
+  filtered().forEach(function(t){rows.push([t.id,'BLEND',t.cat,t.sub,t.subj,t.by,t.mob,t.email,t.prio,t.status,t.assign,t.aEmail||'',fmt(t.raisedOn),fmt(t.td),fmt(t.closedOn||''),t.desc||'']);});
+  if(typeof XLSX!=='undefined'){
+    var wb=XLSX.utils.book_new();
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:10},{wch:10},{wch:14},{wch:18},{wch:36},{wch:18},{wch:14},{wch:28},{wch:10},{wch:16},{wch:20},{wch:28},{wch:12},{wch:12},{wch:12},{wch:44}];
+    XLSX.utils.book_append_sheet(wb,ws,'Blend Tickets');
+    XLSX.writeFile(wb,'Blend_Tickets_'+today()+'.xlsx');
+    showToast('Excel exported — '+filtered().length+' tickets','ok');
+  } else {
+    var csv=rows.map(function(r){return r.map(function(c){return'"'+(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download='Blend_Tickets_'+today()+'.csv';a.click();
+    showToast('CSV exported','ok');
+  }
+}
+
+// Load local data immediately on start
+lsLoad();
+</script>
+</body>
+</html>
