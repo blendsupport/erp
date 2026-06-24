@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blend ERP Support</title>
+<script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f0f2f5}
+/* NAV */
+.nav{background:#33344A;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.nlogo{width:34px;height:34px;background:#6264A7;border-radius:8px;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:-.5px}
+.ntabs{display:flex;gap:2px;background:rgba(255,255,255,.1);border-radius:6px;padding:3px}
+.ntab{padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;color:#CAC9C8;border:none;background:transparent;font-weight:500;font-family:inherit;transition:all .15s}
+.ntab.on{background:#6264A7;color:#fff;font-weight:700}
+.uav{width:30px;height:30px;background:#6264A7;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:5px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.b-blue{background:#6264A7!important;color:#fff!important;border-color:#6264A7!important}
+.b-green{background:#237B4B!important;color:#fff!important;border-color:#237B4B!important}
+.b-amber{background:#FAEEDA!important;color:#633806!important;border-color:#D97706!important}
+.b-red{border-color:#C4314B!important;color:#C4314B!important;background:#fff!important}
+.b-sm{padding:5px 10px!important;font-size:11px!important}
+.b-xs{padding:3px 8px!important;font-size:10px!important}
+/* FORM */
+.inp{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;color:#252424;background:#fff;font-family:inherit;transition:border .15s}
+.inp:focus{outline:none;border-color:#6264A7;box-shadow:0 0 0 3px rgba(98,100,167,.12)}
+textarea.inp{height:70px;resize:vertical}
+.lbl{font-size:10px;font-weight:700;color:#605E5C;margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em}
+.req{color:#C4314B}
+.lock{background:#F5F5F5;padding:8px 10px;border:1px solid #E8E8E8;border-radius:5px;font-size:13px;color:#605E5C}
+.lock b{color:#6264A7}
+.sec{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6264A7;border-bottom:2px solid #EEF2FF;padding-bottom:5px;margin:16px 0 12px}
+/* LAYOUT */
+.content{padding:14px;max-width:1140px;margin:0 auto}
+.card{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.ft{width:100%;border-collapse:collapse;margin-bottom:8px}
+.ft td{padding:4px 5px;vertical-align:top}
+.ft td:first-child{padding-left:0}.ft td:last-child{padding-right:0}
+.pre{display:table;width:100%}
+.pre-t{display:table-cell;background:#F5F5F5;padding:8px 10px;border:1px solid #d1d5db;border-right:none;border-radius:5px 0 0 5px;font-size:13px;color:#605E5C;white-space:nowrap;width:1%;vertical-align:middle}
+.pre-m{display:table-cell;width:100%}
+.pre-m .inp{border-radius:0 5px 5px 0!important}
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-height:6px;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:4px;padding:4px 9px;font-size:12px;color:#3730A3;font-weight:600}
+.chipx{cursor:pointer;font-size:14px;line-height:1;color:#6264A7;margin-left:3px}.chipx:hover{color:#C4314B}
+/* SUGGEST */
+.sug-wrap{position:relative}
+.sug-list{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #E1E1E1;border-top:none;border-radius:0 0 6px 6px;z-index:300;max-height:180px;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #F5F5F5;font-size:13px}.sug-item:hover{background:#EEF2FF}
+.sug-name{font-weight:600;color:#252424}.sug-email{font-size:11px;color:#605E5C;margin-top:1px}
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.s-open{background:#EEF2FF;color:#3730A3}.s-prog{background:#FEF9C3;color:#713F12}
+.s-hold{background:#F3F4F6;color:#374151}.s-pend{background:#FDF4FF;color:#6B21A8}
+.s-closed{background:#DCFCE7;color:#14532D}
+.p-urgent{background:#FEE2E2;color:#7F1D1D}.p-high{background:#FEF3C7;color:#78350F}
+.p-medium{background:#DBEAFE;color:#1E3A8A}.p-low{background:#F3F4F6;color:#374151}
+.cpill{background:#F5F5F5;color:#605E5C;display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700}
+/* SUCCESS CARD */
+.suc-icon{width:64px;height:64px;background:#DCFCE7;border-radius:50%;line-height:64px;text-align:center;font-size:30px;color:#237B4B;margin:0 auto 14px}
+.tkt-box{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:14px 32px;display:inline-block;margin-bottom:16px}
+.tkt-num{font-size:52px;font-weight:700;color:#33344A;font-family:'Courier New',monospace;letter-spacing:4px}
+/* TICKET CARDS (public) */
+.tkt-card{border:1px solid #E1E1E1;border-radius:8px;padding:14px;margin-bottom:10px;border-left:4px solid #6264A7;background:#fff;transition:box-shadow .15s}
+.tkt-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.tkt-card.urg{border-left-color:#C4314B}.tkt-card.cls{border-left-color:#237B4B}
+.dot{width:22px;height:22px;border-radius:50%;display:inline-block;text-align:center;line-height:22px;font-size:11px}
+.d-done{background:#DCFCE7;color:#237B4B}.d-act{background:#EEF2FF;color:#6264A7}.d-idle{background:#F5F5F5;color:#AAA}
+/* ADMIN TABLE */
+.tktbl{width:100%;border-collapse:collapse;font-size:12px}
+.tktbl thead tr{background:#F8F9FF;border-bottom:2px solid #E1E1E1}
+.tktbl th{padding:9px 8px;font-size:10px;font-weight:700;color:#605E5C;text-align:left;text-transform:uppercase;white-space:nowrap}
+.tktbl tbody tr{border-bottom:1px solid #F0F0F0;transition:background .1s}
+.tktbl tbody tr:hover td{background:#F9F9FC}
+.tktbl td{padding:8px 8px;vertical-align:middle}
+.tid{font-family:'Courier New',monospace;font-size:13px;color:#6264A7;font-weight:700}
+.dok{font-size:11px;color:#237B4B;font-weight:700}.dw{font-size:11px;color:#D97706;font-weight:700}
+.do{font-size:11px;color:#C4314B;font-weight:700}.dn{font-size:11px;color:#aaa}
+/* EDIT PANEL */
+.ep{background:#F8F9FF;border:2px solid #6264A7;border-radius:8px;padding:18px;margin-bottom:12px}
+.elock{background:#F5F5F5;padding:6px 10px;border:1px solid #E1E1E1;border-radius:5px;font-size:12px;color:#605E5C}
+/* SUMMARY BAR */
+.sumbar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.sc{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:10px 8px;text-align:center}
+.scv{font-size:22px;font-weight:700}.scl{font-size:10px;color:#605E5C;margin-top:2px;font-weight:600}
+/* ALERTS */
+.al{padding:9px 12px;border-radius:5px;font-size:12px;margin-bottom:6px}
+.al-w{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+.al-p{background:#FDF4FF;border:1px solid #DDD6FE;color:#5B21B6}
+/* TOAST / MBAR */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#33344A;color:#fff;padding:11px 22px;border-radius:6px;font-size:13px;font-weight:700;display:none;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25);min-width:280px}
+.toast.ok{background:#237B4B}.toast.warn{background:#C4314B}
+.mbar{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:12px 16px;font-size:12px;color:#33344A;margin-bottom:10px;display:none}
+/* LOGIN */
+.lwrap{display:flex;align-items:center;justify-content:center;min-height:82vh}
+.lcard{background:#fff;border:1px solid #E1E1E1;border-radius:10px;padding:32px;width:340px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+/* MISC */
+.cc-card{background:#fff;border:1px solid #FECACA;border-radius:8px;padding:16px;margin-bottom:12px}
+.ml-card{background:#fff;border:1px solid #E1E1E1;border-radius:8px;padding:16px;margin-bottom:12px}
+.srch{flex:1;display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #E1E1E1;border-radius:5px;padding:7px 12px}
+.srch input{border:none;outline:none;width:100%;font-size:13px;font-family:inherit}
+.fsel{padding:7px 10px;border:1px solid #E1E1E1;border-radius:5px;font-size:12px;background:#fff;font-family:inherit}
+.empty{padding:36px;text-align:center;color:#AAA;font-size:13px}
+.pg{display:none}.pg.on{display:block}
+/* ATTACHMENTS */
+.att-zone{border:2px dashed #C7D2FE;border-radius:8px;padding:18px;text-align:center;cursor:pointer;background:#F8F9FF;transition:all .2s;margin-top:6px}
+.att-zone:hover,.att-zone.drag{border-color:#6264A7;background:#EEF2FF}
+.att-zone input[type=file]{display:none}
+.att-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.att-item{display:flex;align-items:center;gap:6px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:5px;padding:5px 10px;font-size:11px;color:#3730A3;font-weight:600}
+.att-item a{color:#3730A3;text-decoration:none}.att-item a:hover{text-decoration:underline}
+.att-rm{cursor:pointer;color:#6264A7;font-size:13px;line-height:1}.att-rm:hover{color:#C4314B}
+.att-img{width:36px;height:36px;object-fit:cover;border-radius:3px;border:1px solid #C7D2FE}
+/* SETTINGS PANEL */
+.cfg-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F0}
+.cfg-lbl{flex:1;font-size:12px;color:#252424;font-weight:600}
+.cfg-hint{font-size:11px;color:#888;font-weight:400;display:block}
+/* REMINDER badge */
+.rem-badge{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:3px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;text-transform:uppercase}
+/* SP status */
+.sp-ok{color:#237B4B;font-weight:700;font-size:11px}
+.sp-err{color:#C4314B;font-weight:700;font-size:11px}
+.sp-off{color:#AAA;font-size:11px}
+@media(max-width:600px){.sumbar{grid-template-columns:repeat(3,1fr)}.ft{display:block}.ft tr,.ft td{display:block;width:100%!important}.ft td{padding:4px 0}}
+</style>
+</head>
+<body>
+<div id="TOAST" class="toast"></div>
+<div id="MBAR" class="mbar"></div>
+
+<!-- ══════════ PUBLIC PORTAL ══════════ -->
+<div id="PG_PUB" class="pg on">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:9px">
+    <div class="nlogo">BL</div>
+    <div>
+      <div style="color:#fff;font-size:14px;font-weight:700">Blend ERP Support</div>
+      <div style="color:#AAA9A8;font-size:10px">Customer ID: <b style="color:#9EA2FF">BLEND</b></div>
+    </div>
+  </div>
+  <div class="ntabs">
+    <button class="ntab on" id="T1" onclick="goTab(1)">＋ New Ticket</button>
+    <button class="ntab" id="T2" onclick="goTab(2)">My Tickets</button>
+    <button class="ntab" id="T3" onclick="goTab(3)">Track</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="uav" id="UAV">?</div>
+    <span style="color:#CAC9C8;font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="UNM">Loading…</span>
+    <button class="btn b-sm" onclick="goAdmin()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">🔒 Admin</button>
+  </div>
+</div>
+<div class="content">
+
+<!-- NEW TICKET -->
+<div id="V1">
+<div class="card" id="FCARD">
+  <div style="font-size:17px;font-weight:700;color:#252424;margin-bottom:3px">🎫 Raise a Support Ticket</div>
+  <div style="font-size:12px;color:#605E5C;margin-bottom:16px">Fields marked <span class="req">*</span> are required. Target date is optional.</div>
+  <div class="sec">Ticket Details</div>
+  <table class="ft"><tbody>
+    <tr>
+      <td width="25%"><label class="lbl">Customer ID</label><div class="lock"><b>BLEND</b></div></td>
+      <td width="25%"><label class="lbl">Raised On</label><div class="lock" id="F_DT"></div></td>
+      <td width="25%"><label class="lbl">Category <span class="req">*</span></label><select class="inp" id="F_CAT" onchange="updSub()"></select></td>
+      <td width="25%"><label class="lbl">Sub-category</label><select class="inp" id="F_SUB"></select></td>
+    </tr>
+    <tr><td colspan="4" style="padding-top:8px">
+      <label class="lbl">Subject <span class="req">*</span></label>
+      <input class="inp" id="F_SJ" placeholder="Brief description of the issue" maxlength="150">
+    </td></tr>
+    <tr>
+      <td width="25%">
+        <label class="lbl">Priority <span class="req">*</span></label>
+        <select class="inp" id="F_PR"><option>Medium</option><option>Low</option><option>High</option><option>Urgent</option></select>
+      </td>
+      <td width="25%" style="padding-left:5px">
+        <label class="lbl">Target Date <span style="font-weight:400;text-transform:none;font-size:10px;color:#6264A7;letter-spacing:0">(optional)</span></label>
+        <input type="date" class="inp" id="F_TD">
+      </td>
+      <td colspan="2" style="padding-left:5px">
+        <label class="lbl">Assigned To <span class="req">*</span> <span style="font-weight:400;text-transform:none;font-size:10px;color:#6264A7;letter-spacing:0">— type name/email or pick from list</span></label>
+        <div class="chips" id="CHIPS"></div>
+        <div class="sug-wrap">
+          <input class="inp" id="F_AE" type="text" placeholder="Type name or email of assignee…" autocomplete="off" oninput="showSug()" onfocus="showSug()" onblur="hideSug()" style="margin-bottom:5px">
+          <div class="sug-list" id="SUGLIST"></div>
+        </div>
+        <input type="hidden" id="F_AN">
+        <button class="btn b-blue b-sm" type="button" onclick="addAsgn()">＋ Add</button>
+        <span style="font-size:10px;color:#888;margin-left:6px">Multiple assignees allowed</span>
+      </td>
+    </tr>
+    <tr><td colspan="4" style="padding-top:8px">
+      <label class="lbl">Description</label>
+      <textarea class="inp" id="F_DS" placeholder="Explain the issue in detail…" style="height:80px"></textarea>
+    </td></tr>
+    <tr><td colspan="4" style="padding-top:8px">
+      <label class="lbl">Attachments <span style="font-weight:400;text-transform:none;font-size:10px;color:#6264A7;letter-spacing:0">(images or PDFs, max 5 MB each, up to 5 files)</span></label>
+      <div class="att-zone" id="F_DROPZONE" onclick="G('F_FILE').click()" ondragover="ev.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFiles(event)">
+        <input type="file" id="F_FILE" multiple accept="image/*,.pdf" onchange="pickFiles(this.files)">
+        <div style="font-size:22px;margin-bottom:5px">📎</div>
+        <div style="font-size:13px;color:#6264A7;font-weight:600">Click or drag &amp; drop files here</div>
+        <div style="font-size:11px;color:#888;margin-top:3px">JPG, PNG, GIF, PDF — max 5 MB each</div>
+      </div>
+      <div class="att-list" id="F_ATTLIST"></div>
+    </td></tr>
+  </tbody></table>
+  <div class="sec">Your Details</div>
+  <table class="ft"><tbody><tr>
+    <td width="40%"><label class="lbl">Full Name <span class="req">*</span></label><input class="inp" id="F_NM" placeholder="Your full name"></td>
+    <td width="30%"><label class="lbl">Mobile <span class="req">*</span></label>
+      <div class="pre"><span class="pre-t">+91</span><span class="pre-m"><input class="inp" id="F_MB" type="tel" maxlength="10" placeholder="9XXXXXXXXX"></span></div></td>
+    <td width="30%"><label class="lbl">Email <span class="req">*</span></label>
+      <input class="inp" id="F_EM" type="email" placeholder="your@email.com"></td>
+  </tr></tbody></table>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+    <button class="btn" onclick="doReset()">Clear</button>
+    <button class="btn b-blue" onclick="doSubmit()" style="padding:9px 28px;font-size:14px">Submit Ticket →</button>
+  </div>
+</div>
+<!-- SUCCESS -->
+<div id="SCARD" style="display:none" class="card">
+  <div style="text-align:center;padding:24px 12px">
+    <div class="suc-icon">✓</div>
+    <div style="font-size:21px;font-weight:700;color:#252424;margin-bottom:5px">Ticket Raised Successfully!</div>
+    <div style="font-size:13px;color:#605E5C;margin-bottom:18px">Save your ticket number for future tracking.</div>
+    <div class="tkt-box">
+      <div style="font-size:10px;color:#6264A7;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Your Ticket Number</div>
+      <div class="tkt-num" id="S_NUM">001</div>
+    </div>
+    <div id="S_META" style="background:#F5F5F5;border-radius:8px;padding:12px 18px;font-size:13px;text-align:left;margin-bottom:14px;max-width:540px;margin-left:auto;margin-right:auto"></div>
+    <div id="S_MSG" style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:14px;font-size:12px;color:#33344A;margin-bottom:18px;text-align:left;max-width:540px;margin-left:auto;margin-right:auto"></div>
+    <div id="S_SP_STATUS" style="font-size:11px;color:#888;margin-bottom:14px"></div>
+    <button class="btn b-blue" onclick="doReset()">＋ Raise Another Ticket</button>
+    &nbsp;<button class="btn" onclick="goTab(2)">View My Tickets</button>
+  </div>
+</div>
+</div><!-- /V1 -->
+
+<!-- MY TICKETS -->
+<div id="V2" style="display:none">
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div><div style="font-size:16px;font-weight:700;color:#252424">My Tickets</div><div style="font-size:12px;color:#605E5C;margin-top:2px" id="MY_SUB">Your submitted tickets</div></div>
+    <button class="btn b-blue b-sm" onclick="goTab(1)">＋ New Ticket</button>
+  </div>
+  <div id="MY_LIST"></div>
+</div>
+</div>
+
+<!-- TRACK -->
+<div id="V3" style="display:none">
+<div class="card">
+  <div style="font-size:16px;font-weight:700;color:#252424;margin-bottom:4px">🔍 Track Your Ticket</div>
+  <div style="font-size:12px;color:#605E5C;margin-bottom:12px">Enter ticket number (e.g. 202) or your email address.</div>
+  <table class="ft"><tbody><tr>
+    <td><input class="inp" id="TRK_Q" placeholder="Ticket number or email…" onkeydown="if(event.key==='Enter')doTrack()"></td>
+    <td style="width:100px;padding-left:8px"><button class="btn b-blue" onclick="doTrack()" style="width:100%;padding:9px;justify-content:center">Search</button></td>
+  </tr></tbody></table>
+  <div id="TRK_RES" style="margin-top:12px"></div>
+</div>
+</div>
+</div><!-- /content -->
+</div><!-- /PG_PUB -->
+
+<!-- ══════════ ADMIN LOGIN ══════════ -->
+<div id="PG_LOGIN" class="pg">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:8px"><div class="nlogo">BL</div><div style="color:#fff;font-size:14px;font-weight:700">Admin Login</div></div>
+  <button class="btn b-sm" onclick="showPg('PG_PUB')" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">← Back</button>
+</div>
+<div class="content"><div class="lwrap"><div class="lcard">
+  <div style="width:52px;height:52px;background:#6264A7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;margin:0 auto 14px">BL</div>
+  <div style="font-size:18px;font-weight:700;color:#252424;margin-bottom:4px">Admin Login</div>
+  <div style="font-size:12px;color:#605E5C;margin-bottom:18px">Blend ERP Support — Secure Backend</div>
+  <div id="L_ERR" style="display:none;background:#FEE2E2;color:#7F1D1D;border-radius:5px;padding:8px 12px;font-size:12px;margin-bottom:10px">❌ Incorrect password.</div>
+  <label class="lbl" style="text-align:left">Password</label>
+  <input class="inp" id="L_PW" type="password" placeholder="Enter admin password" style="margin-bottom:12px">
+  <button class="btn b-blue" onclick="doLogin()" style="width:100%;padding:10px;justify-content:center;font-size:14px">Sign In →</button>
+  <button class="btn" onclick="showPg('PG_PUB')" style="width:100%;padding:9px;margin-top:8px;justify-content:center">← Back to Portal</button>
+</div></div></div>
+</div>
+
+<!-- ══════════ ADMIN PANEL ══════════ -->
+<div id="PG_ADM" class="pg">
+<div class="nav">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nlogo">BL</div>
+    <div style="color:#fff;font-size:14px;font-weight:700">
+      Admin Panel
+      <span id="URG_B" style="display:none;background:#C4314B;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;margin-left:6px;animation:pulse 1.5s infinite">🔴</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <span id="SP_IND" class="sp-off" style="font-size:10px" title="Data sync status">⬤ Teams</span>
+    <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
+    <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
+    <button class="btn b-sm b-green" onclick="doExport()">⬇ Excel</button>
+    <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
+    <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
+  </div>
+</div>
+<div class="content">
+  <div id="SUM_DIV"></div>
+  <div id="ALT_DIV"></div>
+  <!-- NOTIFICATION LOG -->
+  <div id="ML_WRAP" style="display:none" class="ml-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700;color:#252424">📋 Notification Log</div>
+      <button class="btn b-sm" onclick="toggleML()">Close</button>
+    </div>
+    <div id="ML_INNER" style="max-height:260px;overflow-y:auto"></div>
+  </div>
+  <!-- SETTINGS -->
+  <div id="CFG_WRAP" style="display:none" class="card">
+    <div style="font-size:15px;font-weight:700;color:#252424;margin-bottom:14px">⚙ Settings &amp; Integrations</div>
+    <div class="sec">Security</div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">Admin Password <span class="cfg-hint">Change from the default to secure your panel</span></div>
+      <input class="inp" id="CFG_PW" type="password" placeholder="New password" style="width:180px">
+      <button class="btn b-sm b-blue" onclick="changePw()">Save</button>
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">Ticket Series Start Number <span class="cfg-hint">Current next ticket ID. Increase to skip ahead.</span></div>
+      <input class="inp" id="CFG_CNT" type="number" min="1" style="width:100px">
+      <button class="btn b-sm b-blue" onclick="saveCnt()">Save</button>
+    </div>
+    <div class="sec">Teams Notifications (Incoming Webhook — Free)</div>
+    <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:10px 14px;font-size:12px;color:#3730A3;margin-bottom:12px">
+      ℹ Paste your Teams Incoming Webhook URL below. Every ticket raised, updated, resolved or closed will instantly post a card to your Teams channel. Free — no Power Automate needed.
+    </div>
+
+    <div class="cfg-row">
+      <div class="cfg-lbl">Teams Incoming Webhook URL <span class="cfg-hint">Teams channel → … → Connectors → Incoming Webhook</span></div>
+      <input class="inp" id="CFG_TW" type="url" placeholder="https://blendgroup.webhook.office.com/webhookb2/…">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn b-blue" onclick="saveCfg()">💾 Save All Settings</button>
+      <button class="btn" onclick="closeCfg()">Cancel</button>
+      <button class="btn b-sm" onclick="testFlow()" style="margin-left:auto">🧪 Test Connection</button>
+    </div>
+    <div class="sec" style="margin-top:16px">📘 SharePoint + Teams Setup Guide (Free)</div>
+    <div style="background:#F5F5F5;border-radius:6px;padding:14px;font-size:12px;color:#252424;line-height:1.9">
+      <b>Step 1 — Create SharePoint List</b><br>
+      Go to your SharePoint site → + New → List → Blank list → Name: <b>BlendERP_Tickets</b> → Create.<br><br>
+      Then add these columns exactly (<b>column name</b> | type | notes):<br><br>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px">
+        <tr style="background:#33344A;color:#fff">
+          <th style="padding:5px 8px;text-align:left">#</th>
+          <th style="padding:5px 8px;text-align:left">Column Name (type exactly)</th>
+          <th style="padding:5px 8px;text-align:left">Type to select</th>
+          <th style="padding:5px 8px;text-align:left">What it stores</th>
+        </tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">auto</td><td style="padding:5px 8px;font-weight:700">Title</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Already exists — stores Ticket ID (e.g. 202)</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">1</td><td style="padding:5px 8px;font-weight:700">Subject</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Ticket subject / issue summary</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">2</td><td style="padding:5px 8px;font-weight:700">Category0</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Category (IT, Finance, HR, etc.) — note the zero: 0</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">3</td><td style="padding:5px 8px;font-weight:700">SubCategory</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Sub-category (Software Bug, Leave Request, etc.)</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">4</td><td style="padding:5px 8px;font-weight:700">Priority</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Urgent / High / Medium / Low</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">5</td><td style="padding:5px 8px;font-weight:700">Status</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Open / In Progress / On Hold / Pending Closure / Closed</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">6</td><td style="padding:5px 8px;font-weight:700">RaisedBy</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Full name of person who raised the ticket</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">7</td><td style="padding:5px 8px;font-weight:700">Mobile</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Requester mobile number (+91-XXXXXXXXXX)</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">8</td><td style="padding:5px 8px;font-weight:700">RequesterEmail</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Email of person who raised the ticket</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">9</td><td style="padding:5px 8px;font-weight:700">AssignedTo0</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Assignee name(s) — note the zero: 0</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">10</td><td style="padding:5px 8px;font-weight:700">AssigneeEmail</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">Assignee email(s)</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">11</td><td style="padding:5px 8px;font-weight:700">TargetDate</td><td style="padding:5px 8px"><b style="color:#C4314B">Date and Time</b></td><td style="padding:5px 8px">Target resolution date (optional)</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">12</td><td style="padding:5px 8px;font-weight:700">RaisedOn</td><td style="padding:5px 8px"><b style="color:#C4314B">Date and Time</b></td><td style="padding:5px 8px">Date ticket was submitted</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">13</td><td style="padding:5px 8px;font-weight:700">ClosedOn</td><td style="padding:5px 8px"><b style="color:#C4314B">Date and Time</b></td><td style="padding:5px 8px">Date ticket was closed (blank until closed)</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">14</td><td style="padding:5px 8px;font-weight:700">Description</td><td style="padding:5px 8px"><b style="color:#C4314B">Multiple lines of text</b></td><td style="padding:5px 8px">Full ticket description</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">15</td><td style="padding:5px 8px;font-weight:700">Resolution</td><td style="padding:5px 8px">Multiple lines of text</td><td style="padding:5px 8px">Resolution notes when closing / change notes when updating</td></tr>
+        <tr style="background:#F8F9FF"><td style="padding:5px 8px;color:#6264A7;font-weight:700">16</td><td style="padding:5px 8px;font-weight:700">Source</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">new or imported (legacy tickets)</td></tr>
+        <tr><td style="padding:5px 8px;color:#6264A7;font-weight:700">17</td><td style="padding:5px 8px;font-weight:700">EventType</td><td style="padding:5px 8px">Single line of text</td><td style="padding:5px 8px">New Ticket / Updated / Resolved / Closed / Reminder</td></tr>
+      </table>
+      <span style="color:#C4314B;font-weight:700">⚠ Important:</span> Category0 and AssignedTo0 must be typed with a zero (0) at the end — not the letter O. SharePoint reserves the names Category and AssignedTo internally.<br><br>
+      <b>Step 2 — Register an Azure AD App (for Bearer Token)</b><br>
+      Go to <b>portal.azure.com</b> → Azure Active Directory → App registrations → New registration.<br>
+      Name: BlendERP-App | Supported account types: Single tenant | Click Register.<br>
+      Go to API Permissions → Add permission → SharePoint → Application permissions → Sites.ReadWrite.All → Grant admin consent.<br>
+      Go to Certificates &amp; secrets → New client secret → copy the Value immediately.<br>
+      Go to Overview → copy the Application (client) ID and Directory (tenant) ID.<br><br>
+      <b>Step 3 — Get Bearer Token</b><br>
+      Run this in browser console or Postman to get your token:<br>
+      <code style="background:#1E1E2E;color:#E2E8F0;padding:4px 8px;border-radius:4px;display:block;margin:6px 0;word-break:break-all">
+      POST https://login.microsoftonline.com/YOUR-TENANT-ID/oauth2/v2.0/token<br>
+      Body: grant_type=client_credentials &amp;client_id=YOUR-CLIENT-ID &amp;client_secret=YOUR-SECRET &amp;scope=https://blendgroup.sharepoint.com/.default
+      </code>
+      Copy the access_token from the response and paste it in the Bearer Token field above.<br>
+      Note: tokens expire after 1 hour — for production, set up a daily refresh or use Power Automate to refresh.<br><br>
+      <b>Step 4 — Teams Channel Webhook (for instant notifications)</b><br>
+      Open Teams → go to your support channel → click … → Connectors → Incoming Webhook → Configure.<br>
+      Name it: Blend ERP Support | Upload a logo (optional) | Click Create.<br>
+      Copy the URL and paste in the Teams Webhook URL field above.<br>
+      Now every ticket action posts a card to your Teams channel automatically — no Power Automate needed.<br><br>
+      <b>Step 5 — Power Automate Standard flows (for email notifications — free)</b><br>
+      In Power Automate → New flow → Automated cloud flow.<br>
+      Trigger: <b>SharePoint — When an item is created</b> (Standard — free) → select your BlendERP_Tickets list.<br>
+      Action: <b>Outlook — Send an email (V2)</b> → To: RequesterEmail → Subject: Ticket #[Title] raised → Body: fill with SP columns.<br>
+      Save. This flow runs free whenever the app creates a new item in the list.<br><br>
+      <b>Step 6 — GitHub Pages + Teams Tab</b><br>
+      Rename this file to <b>index.html</b> → push to GitHub repo → Settings → Pages → Source: main/root.<br>
+      Add as Teams tab: Channel → + → Website → paste your GitHub Pages URL.<br><br>
+      <b>Security:</b> Bearer token is stored in this browser only (localStorage). It is never uploaded to GitHub. Rotate it monthly from the Azure portal.
+    </div>
+  </div>
+  <!-- CONFIRM CLOSURE -->
+  <div id="CC_WRAP" style="display:none" class="cc-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:10px">🔒 Confirm Ticket Closure</div>
+    <label class="lbl">Requester Email <span class="req">*</span></label>
+    <input class="inp" id="CC_EM" type="email" placeholder="Must match email on ticket" style="margin-bottom:8px">
+    <label class="lbl">Resolution Notes</label>
+    <textarea class="inp" id="CC_REM" style="height:50px;margin-bottom:10px" placeholder="How was this resolved?"></textarea>
+    <button class="btn" onclick="cancelCC()">Cancel</button>&nbsp;
+    <button class="btn b-green" onclick="confirmCC()">✓ Confirm &amp; Close Ticket</button>
+  </div>
+  <!-- EDIT PANEL -->
+  <div id="EP_DIV" style="display:none" class="ep">
+    <div style="font-size:14px;font-weight:700;color:#6264A7;margin-bottom:14px">✏ Editing Ticket <span id="EP_NUM"></span></div>
+    <table class="ft"><tbody>
+      <tr>
+        <td width="16%"><label class="lbl">Customer ID</label><div class="elock"><b>BLEND</b></div></td>
+        <td width="16%"><label class="lbl">Ticket No.</label><div class="elock" id="EP_ID" style="font-family:'Courier New';font-size:14px;font-weight:700;color:#6264A7"></div></td>
+        <td width="16%"><label class="lbl">Raised On</label><div class="elock" id="EP_RO"></div></td>
+        <td width="16%"><label class="lbl">Target Date</label><input type="date" class="inp" id="EP_TD"></td>
+        <td width="16%"><label class="lbl">Status</label><select class="inp" id="EP_ST"><option>Open</option><option>In Progress</option><option>On Hold</option><option>Pending Closure</option></select></td>
+        <td width="20%"><label class="lbl">Priority</label><select class="inp" id="EP_PR"><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select></td>
+      </tr>
+      <tr>
+        <td colspan="3"><label class="lbl">Category</label><select class="inp" id="EP_CAT" onchange="epSub()"></select></td>
+        <td colspan="3"><label class="lbl">Sub-category</label><select class="inp" id="EP_SUB"></select></td>
+      </tr>
+      <tr>
+        <td colspan="2"><label class="lbl">Assigned To</label><input class="inp" id="EP_AS"></td>
+        <td colspan="2"><label class="lbl">Assignee Email(s)</label><input class="inp" id="EP_AE"></td>
+        <td><label class="lbl">Mobile</label><input class="inp" id="EP_MB"></td>
+        <td><label class="lbl">Requester Email</label><input class="inp" id="EP_EM" type="email"></td>
+      </tr>
+      <tr>
+        <td colspan="2"><label class="lbl">Raised By</label><input class="inp" id="EP_BY"></td>
+        <td colspan="4"><label class="lbl">Subject</label><input class="inp" id="EP_SJ"></td>
+      </tr>
+      <tr><td colspan="6"><label class="lbl">Description / Notes</label><textarea class="inp" id="EP_DS" style="height:60px"></textarea></td></tr>
+      <tr><td colspan="6">
+        <label class="lbl">Attachments</label>
+        <div id="EP_ATTLIST" class="att-list" style="margin-bottom:6px"></div>
+        <div class="att-zone" style="padding:10px" onclick="G('EP_FILE').click()">
+          <input type="file" id="EP_FILE" multiple accept="image/*,.pdf" onchange="epPickFiles(this.files)">
+          <span style="font-size:12px;color:#6264A7;font-weight:600">📎 Add more attachments</span>
+        </div>
+      </td></tr>
+    </tbody></table>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+      <button class="btn b-red b-sm" onclick="delTkt()" id="BTN_DEL">🗑 Delete</button>
+      <button class="btn b-sm" onclick="closeEP()">Cancel</button>
+      <button class="btn b-blue b-sm" onclick="saveTkt()" id="BTN_SAV">💾 Save &amp; Notify</button>
+      <button class="btn b-sm b-amber" onclick="markPend()" id="BTN_PND">✅ Mark Resolved</button>
+      <button class="btn b-green b-sm" onclick="openCC()" id="BTN_CC" style="display:none">🔒 Confirm Closure</button>
+    </div>
+  </div>
+  <!-- SEARCH / FILTER -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+    <div class="srch"><span>🔍</span><input id="A_Q" placeholder="Search ID, subject, name, email…" oninput="renderAdm()"></div>
+    <select class="fsel" id="A_CAT" onchange="renderAdm()"><option value="">All Categories</option></select>
+    <select class="fsel" id="A_ST" onchange="renderAdm()"><option value="">All Status</option><option>Open</option><option>In Progress</option><option>On Hold</option><option>Pending Closure</option><option>Closed</option></select>
+    <select class="fsel" id="A_PR" onchange="renderAdm()"><option value="">All Priority</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <select class="fsel" id="A_SRC" onchange="renderAdm()"><option value="">All Sources</option><option value="imported">Legacy (Imported)</option><option value="new">New Tickets</option></select>
+  </div>
+  <!-- TICKETS TABLE -->
+  <div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">
+  <table class="tktbl">
+    <thead><tr><th>No.</th><th>Category</th><th>Subject</th><th>Raised By</th><th>Priority</th><th>Status</th><th>Assigned To</th><th>Target / Date</th><th>Att.</th><th>Action</th></tr></thead>
+    <tbody id="ADM_BODY"></tbody>
+  </table></div></div>
+</div>
+</div><!-- /PG_ADM -->
+
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CONFIG  (loaded from localStorage / Settings panel)
+// ══════════════════════════════════════════════════
+var CFG={
+  pass:'admin123',
+  // SharePoint config (free with any M365 plan — no Premium needed)
+  sp_site:'',        // e.g. https://blendgroup.sharepoint.com/sites/ERPSupport
+  sp_list:'BlendERP_Tickets', // SharePoint list name
+  sp_token:'',       // Bearer token from Azure AD app registration
+  // Optional: Power Automate Standard flows (Teams msg + Email only — no HTTP trigger)
+  // These use the SharePoint trigger "When item created" — completely free
+  teams_webhook:''   // Teams channel incoming webhook URL (free)
+};
+function loadCfg(){try{var c=localStorage.getItem('blend_cfg');if(c)CFG=Object.assign(CFG,JSON.parse(c));}catch(e){}}
+function persistCfg(){try{localStorage.setItem('blend_cfg',JSON.stringify(CFG));}catch(e){}}
+loadCfg();
+
+// ══ DIRECTORY ══
+var DIRECTORY=[
+  {name:'Aabraham Samraj',email:'aabraham.samraj@blendgroup.in'},
+  {name:'Abdul Mohammed',email:'abdul.mohammed@blendgroup.in'},
+  {name:'Abhilash Malluru',email:'abhilash.malluru@blendgroup.in'},
+  {name:'Abilash Nandala',email:'abilash.nandala@blendgroup.in'},
+  {name:'Account',email:'account@blendgroup.in'},
+  {name:'Admin',email:'admin@blendgroupin.onmicrosoft.com'},
+  {name:'Ahmedabad',email:'ahmedabad@blendgroup.in'},
+  {name:'Akash Kumar',email:'akash.kumar@blendgroup.in'},
+  {name:'Amer Shareef',email:'amer.shareef@blendgroup.in'},
+  {name:'Amit Singh',email:'amit.singh@blendgroup.in'},
+  {name:'Amrutesh Piduru',email:'amrutesh.piduru@blendgroup.in'},
+  {name:'Ananda Pradhan',email:'ananda.pradhan@blendgroup.in'},
+  {name:'Anil Kumar',email:'anil.kumar@blendgroup.in'},
+  {name:'Ankith Sharma',email:'ankith.sharma@blendgroup.in'},
+  {name:'Arun Reddy',email:'arun.reddy@blendgroup.in'},
+  {name:'Asha Prabha',email:'asha.prabha@blendgroup.in'},
+  {name:'Ashish Singh',email:'ashish.singh@blendgroup.in'},
+  {name:'Ashutosh Khobragade',email:'ashutosh.khobragade@blendgroup.in'},
+  {name:'Avijit Das',email:'avijit.das@blendgroup.in'},
+  {name:'Bengaluru',email:'bengaluru@blendgroup.in'},
+  {name:'Bhagwan Singh',email:'bhagwan.singh@blendgroup.in'},
+  {name:'Chandan Giri',email:'chandan.giri@blendgroup.in'},
+  {name:'Chandan Maurya',email:'chandan.maurya@blendgroup.in'},
+  {name:'Chandra Mohan',email:'chandra.mohan@blendgroup.in'},
+  {name:'Deepak Tripathi',email:'deepak.tripathi@blendgroup.in'},
+  {name:'Deepika Mudda',email:'deepika.mudda@blendgroup.in'},
+  {name:'Deepthi Guthala',email:'deepthi.guthala@blendgroup.in'},
+  {name:'Devendra Singh',email:'devendra.singh@blendgroup.in'},
+  {name:'Dheeraj Kumar',email:'dheeraj.kumar@blendgroup.in'},
+  {name:'Dibya Behera',email:'dibya.behera@blendgroup.in'},
+  {name:'Dinesh Sevada',email:'dinesh.sevada@blendgroup.in'},
+  {name:'Eswara Kumar',email:'eswara.kumar@blendgroup.in'},
+  {name:'Ganesh Cherku',email:'ganesh.cherku@blendgroup.in'},
+  {name:'Ganesh Nagbhushan',email:'ganesh.nagbhushan@blendgroup.in'},
+  {name:'Ganeswar Mandal',email:'ganeswar.mandal@blendgroup.in'},
+  {name:'Gaurav Verma',email:'gaurav.verma@blendgroup.in'},
+  {name:'Gyandeep Daimari',email:'gyandeep.daimari@blendgroup.in'},
+  {name:'Hari Shukla',email:'hari.shukla@blendgroup.in'},
+  {name:'Harinath Boosa',email:'harinath.boosa@blendgroup.in'},
+  {name:'Harsh Raj',email:'harsh.raj@blendgroup.in'},
+  {name:'Helpdesk',email:'helpdesk@blendgroup.in'},
+  {name:'Indrajit Mohanty',email:'indrajit.mohanty@blendgroup.in'},
+  {name:'It Admin',email:'it.admin@blendgroup.in'},
+  {name:'Jayaraj Parambath',email:'jayaraj.parambath@blendgroup.in'},
+  {name:'Kabir Mohapatra',email:'kabir.mohapatra@blendgroup.in'},
+  {name:'Kanhaian Sadanad',email:'kanhaian.sadanad@blendgroup.in'},
+  {name:'Kartik Shukla',email:'kartik.shukla@blendgroup.in'},
+  {name:'Kaushal Yadav',email:'kaushal.yadav@blendgroup.in'},
+  {name:'Kedar Parte',email:'kedar.parte@blendgroup.in'},
+  {name:'Kiran Swamy',email:'kiran.swamy@blendgroup.in'},
+  {name:'Kolkata',email:'kolkata@blendgroup.in'},
+  {name:'Krishna Joshi',email:'krishna.joshi@blendgroup.in'},
+  {name:'Lalit Rathi',email:'lalit.rathi@blendgroup.in'},
+  {name:'Maharana Prashant',email:'maharana.prashant@blendgroup.in'},
+  {name:'Mahendra Solake',email:'mahendra.solake@blendgroup.in'},
+  {name:'Makarand Gosavi',email:'makarand.gosavi@blendgroup.in'},
+  {name:'Manoj Kumar',email:'manoj.kumar@blendgroup.in'},
+  {name:'Meghraj Rathi',email:'meghraj.rathi@blendgroup.in'},
+  {name:'Mittal Rathi',email:'mittal.rathi@blendgroup.in'},
+  {name:'Mounika Kolluru',email:'mounika.kolluru@blendgroup.in'},
+  {name:'Naga Rayudu',email:'naga.rayudu@blendgroup.in'},
+  {name:'Naren Bhuyan',email:'naren.bhuyan@blendgroup.in'},
+  {name:'Naveen Chenna',email:'naveen.chenna@blendgroup.in'},
+  {name:'Neelam Singh',email:'neelam.singh@blendgroup.in'},
+  {name:'Nikhil Chandak',email:'nikhil.chandak@blendgroup.in'},
+  {name:'Noida',email:'noida@blendgroup.in'},
+  {name:'Omkar Mulik',email:'omkar.mulik@blendgroup.in'},
+  {name:'Pallavi Ingulkar',email:'pallavi.ingulkar@blendgroup.in'},
+  {name:'Pankaj Dubey',email:'pankaj.dubey@blendgroup.in'},
+  {name:'Pavan Kumar',email:'pavan.kumar@blendgroup.in'},
+  {name:'Pavan Thakur',email:'pavan.thakur@blendgroup.in'},
+  {name:'Prabhakar Godha',email:'prabhakar.godha@blendgroup.in'},
+  {name:'Prasanta Kumar',email:'prasanta.kumar@blendgroup.in'},
+  {name:'Priyanka Sharma',email:'priyanka.sharma@blendgroup.in'},
+  {name:'Pune',email:'pune@blendgroup.in'},
+  {name:'Rahul Ajmeri',email:'rahul.ajmeri@blendgroup.in'},
+  {name:'Rajender Kumar',email:'rajender.kumar@blendgroup.in'},
+  {name:'Rajesh Maharana',email:'rajesh.maharana@blendgroup.in'},
+  {name:'Rajkot',email:'rajkot@blendgroup.in'},
+  {name:'Ramesh Kumar',email:'ramesh.kumar@blendgroup.in'},
+  {name:'Ravi Agnihotri',email:'ravi.agnihotri@blendgroup.in'},
+  {name:'Sachin Swamy',email:'sachin.swamy@blendgroup.in'},
+  {name:'Saikishore Bethi',email:'saikishore.bethi@blendgroup.in'},
+  {name:'Sailesh Maddi',email:'sailesh.maddi@blendgroup.in'},
+  {name:'Saket Saptiskar',email:'saket.saptiskar@blendgroup.in'},
+  {name:'Sampat Mohanty',email:'sampat.mohanty@blendgroup.in'},
+  {name:'Sandeep Bharat',email:'sandeep.bharat@blendgroup.in'},
+  {name:'Santosh Kumar',email:'santosh.kumar@blendgroup.in'},
+  {name:'Satyendra Shah',email:'satyendra.shah@blendgroup.in'},
+  {name:'Shailesh Lahoti',email:'shailesh.lahoti@blendgroup.in'},
+  {name:'Shani Singh',email:'shani.singh@blendgroup.in'},
+  {name:'Sharad Rathi',email:'sharad.rathi@blendgroup.in'},
+  {name:'Shashikanth Deshmukh',email:'shashikanth.deshmukh@blendgroup.in'},
+  {name:'Shubham Rathi',email:'shubham.rathi@blendgroup.in'},
+  {name:'Siddu Gundu',email:'siddu.gundu@blendgroup.in'},
+  {name:'Sridevi Dasari',email:'sridevi.dasari@blendgroup.in'},
+  {name:'Srikanth Palladhi',email:'srikanth.palladhi@blendgroup.in'},
+  {name:'Srinivas Mantri',email:'srinivas.mantri@blendgroup.in'},
+  {name:'Srinivas Rao',email:'srinivas.rao@blendgroup.in'},
+  {name:'Srinivas Talkad',email:'srinivas.talkad@blendgroup.in'},
+  {name:'Sujit Mohapatra',email:'sujit.mohapatra@blendgroup.in'},
+  {name:'Sumit Rathi',email:'sumit.rathi@blendgroup.in'},
+  {name:'Vaibhav Pachundkar',email:'vaibhav.pachundkar@blendgroup.in'},
+  {name:'Vapi',email:'vapi@blendgroup.in'},
+  {name:'Venkatesh Kondemoni',email:'venkatesh.kondemoni@blendgroup.in'},
+  {name:'Vijaykumar Rachawar',email:'vijaykumar.rachawar@blendgroup.in'},
+  {name:'Vikas Yadav',email:'vikas.yadav@blendgroup.in'},
+  {name:'Vinay Bethi',email:'vinay.bethi@blendgroup.in'},
+  {name:'Vineeth Kumar',email:'vineeth.kumar@blendgroup.in'},
+  {name:'Vishal Gupta',email:'vishal.gupta@blendgroup.in'},
+  {name:'Yamini Priya',email:'yamini.priya@blendgroup.in'},
+  {name:'Yash Motghare',email:'yash.motghare@blendgroup.in'}
+];
+function loadCustom(){try{var c=localStorage.getItem('blend_custom_emails');return c?JSON.parse(c):[];}catch(e){return[];}}
+function saveCustom(name,email){try{var c=loadCustom();if(!c.some(function(x){return x.email.toLowerCase()===email.toLowerCase();})&&!DIRECTORY.some(function(x){return x.email.toLowerCase()===email.toLowerCase();})){c.push({name:name,email:email});localStorage.setItem('blend_custom_emails',JSON.stringify(c));}}catch(e){}}
+function allPeople(){return DIRECTORY.concat(loadCustom());}
+
+// ══ CATEGORIES ══
+var CATS={
+  'HR':['Leave Request','Payroll Issue','Recruitment','Onboarding','Policy Query','Offboarding','Attendance','Appraisal','Training','Other'],
+  'Warehouse':['Stock Discrepancy','Damaged Goods','Space Allocation','Equipment Fault','Safety Issue','Inward Receipt','Outward Dispatch','Other'],
+  'Inventory':['Stock Update','Item Not Found','Reorder Request','Audit Query','System Error','Expiry Alert','Barcode Issue','Other'],
+  'Sales':['Order Issue','Quote Request','Customer Complaint','Pricing Query','Contract','Commission','Target Query','Other'],
+  'Finance':['Invoice Query','Payment Delay','Expense Claim','Budget Request','Audit','Reconciliation','Tax Query','Credit Note','Other'],
+  'Dispatch':['Delivery Delay','Wrong Item Shipped','Address Error','Courier Issue','Returns','POD Missing','Other'],
+  'Purchase':['PO Request','Vendor Issue','Price Discrepancy','Approval Pending','New Vendor','GRN Issue','Other'],
+  'IT':['Hardware Fault','Software Bug','Access Request','Network Issue','Email Problem','System Downtime','Other'],
+  'Admin':['Office Supply','Facility Request','Meeting Room','Visitor Access','Document Request','Housekeeping','Other'],
+  'Operations':['Process Query','SOP Update','Machine Downtime','Shift Issue','Quality Issue','Production Plan','Other'],
+  'Marketing':['Campaign Request','Artwork Approval','Brand Guideline','Social Media','Event Support','Other'],
+  'Logistics':['Route Query','Vehicle Issue','Driver Problem','Load Planning','Fuel Claim','Transit Damage','Other'],
+  'Others':['General Query','Feedback','Complaint','Suggestion','Other']
+};
+var CK=Object.keys(CATS);
+
+// ══ PERSISTENCE (localStorage — fallback when OneDrive flows not configured) ══
+var curId=null;
+function loadStore(){try{var r=localStorage.getItem('blend_tickets');return r?JSON.parse(r):[];}catch(e){return[];}}
+function saveStore(){try{localStorage.setItem('blend_tickets',JSON.stringify(tkts));localStorage.setItem('blend_cnt',String(cnt));}catch(e){}}
+
+// ══ LEGACY SEED ══
+var LEGACY_TICKETS=[{"id":"003","cat":"Others","sub":"General Query","subj":"New screen for Sales order to capture Under billing accounts","by":"BCPL","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"New screen for Sales order to capture Under billing accounts | Resolution: Duplicate of ticket 4, so closing","closedOn":"2025-08-08","source":"imported"},{"id":"004","cat":"Others","sub":"General Query","subj":"New screen for Sales order to capture Under billing accounts","by":"BCPL","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"New screen for Sales order to capture Under billing accounts | Resolution: Completed and gave access to relevant team member - done by Prabhakar","closedOn":"2025-08-08","source":"imported"},{"id":"005","cat":"Others","sub":"General Query","subj":"FG MRN & Inventory Credit Note Linking.Development of a separate screen for updating inventory credi...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"FG MRN & Inventory Credit Note Linking.Development of a separate screen for updating inventory credit notes, with a link to the MRN | Resolution: Done","closedOn":"2025-08-08","source":"imported"},{"id":"006","cat":"Others","sub":"General Query","subj":"Automated Sales Outstanding Report Invoice-wise outstanding report with automatic adjustment of rece...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"Automated Sales Outstanding Report Invoice-wise outstanding report with automatic adjustment of receipts and credit notes. The report should be auto-generated without any manual intervention to map credits against debits. | Resolution: Completed and Priyanka mam suggested few changes. Implemented changes and Priyanka mam approved","closedOn":"2025-08-08","source":"imported"},{"id":"007","cat":"Others","sub":"General Query","subj":"Automated Sales Outstanding Report Invoice-wise outstanding report with automatic adjustment of rece...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"Automated Sales Outstanding Report Invoice-wise outstanding report with automatic adjustment of receipts and credit notes. The report should be auto-generated without any manual intervention to map credits against debits. | Resolution: Duplicate of ticket 6","closedOn":"2025-08-08","source":"imported"},{"id":"008","cat":"Others","sub":"General Query","subj":"TOD Summary Report As per the above automated report, generate a TOD summary report for both Debtors...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2025-08-08","td":"","desc":"TOD Summary Report As per the above automated report, generate a TOD summary report for both Debtors and Creditors.","closedOn":"","source":"imported"},{"id":"009","cat":"Others","sub":"General Query","subj":"Overdue Billing Restriction System control to restrict billing for accounts having overdue balances ...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-08","td":"","desc":"Overdue Billing Restriction System control to restrict billing for accounts having overdue balances exceeding 45 days from the agreed credit period. | Resolution: This is completed and updated Priyanka mam","closedOn":"2025-08-08","source":"imported"},{"id":"010","cat":"Others","sub":"General Query","subj":"New Requirement for Dispatch Planning Sheet auto generating from system.","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-20","td":"","desc":"New Requirement for Dispatch Planning Sheet auto generating from system. | Resolution: All Requirements are done and expalined.","closedOn":"2025-08-20","source":"imported"},{"id":"011","cat":"Others","sub":"General Query","subj":"Lock transactions of Customers if there is even 1 pending bill which is of Credit Period + 45 Days","by":"Priyanka","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-08-24","td":"","desc":"Lock transactions of Customers if there is even 1 pending bill which is of Credit Period + 45 Days | Resolution: Now Every day there is a Job running in SQL which locks all accounts with this criteria","closedOn":"2025-08-24","source":"imported"},{"id":"012","cat":"Others","sub":"General Query","subj":"Please arrange to book economical ticket as below Date 3rd November 2025 from Pune to Kolkata early ...","by":"BCPL","mob":"+91-9834393154","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2025-10-28","td":"","desc":"Please arrange to book economical ticket as below Date 3rd November 2025 from Pune to Kolkata early morning. Indigo 6E6359 | Resolution: This forum is for ERP issues","closedOn":"2025-10-28","source":"imported"},{"id":"013","cat":"Others","sub":"General Query","subj":"Dear Madam/sir, i am unable to see SO order in Pending order list after punching my SO order","by":"BCPL","mob":"+91-9176649038","email":"","prio":"Medium","status":"Closed","assign":"Prabhkar","aEmail":"","assignees":[],"raisedOn":"2025-11-11","td":"","desc":"Dear Madam/sir, i am unable to see SO order in Pending order list after punching my SO order | Resolution: Resolved","closedOn":"2025-11-11","source":"imported"},{"id":"014","cat":"Others","sub":"General Query","subj":"1. User Access Control All Unit-7 ERP users should have access only to Unit-7 screens . No other uni...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-11-12","td":"","desc":"1. User Access Control All Unit-7 ERP users should have access only to Unit-7 screens . No other units should be visible or accessible in their login (including entry level, SO, or related modules) 2. Warehouse Creation for Unit-7 The following warehouses need to be created under Unit-7: RM Warehouse RM Rejected Warehouse Production Floor FG Warehouse FG Rejected Warehouse FG Sales Return Warehouse Trial Warehouse Trial Rejection Warehouse Maintenance Warehouse Consumable Warehouse Wastage Warehouse HO FG Warehouse HO FG Rejection Warehouse | Resolution: Completed and shown to the team in Unit 7","closedOn":"2025-11-12","source":"imported"},{"id":"015","cat":"Others","sub":"General Query","subj":"COST CENTRE NOT APPERING AND UNABLE TO SELECT WHEN WE WANT ENTER PETTY CASH ENTRIES","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-11-17","td":"","desc":"COST CENTRE NOT APPERING AND UNABLE TO SELECT WHEN WE WANT ENTER PETTY CASH ENTRIES | Resolution: You need to first select the account first then you can select the cost centre.","closedOn":"2025-11-17","source":"imported"},{"id":"016","cat":"Others","sub":"General Query","subj":"We Required Proforma Invoice by Online","by":"vinay","mob":"+91-9989665739","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2025-11-20","td":"","desc":"We Required Proforma Invoice by Online","closedOn":"","source":"imported"},{"id":"017","cat":"Others","sub":"General Query","subj":"Need Ledger Balance column and Credit Limit Available columns in Pending Sales Orders Report","by":"Saketh","mob":"+91-8886678442","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-11-22","td":"","desc":"Need Ledger Balance column and Credit Limit Available columns in Pending Sales Orders Report | Resolution: completed","closedOn":"2025-11-22","source":"imported"},{"id":"018","cat":"Others","sub":"General Query","subj":"1.UPDATE CHEMIADD LOGO ON SALE INVOICE, DEBIT NOTE,CREDIT NOTE,PO--- ATTACHED FOR REFERANCE. 2.ADDRE...","by":"BCPL","mob":"+91-9347362485","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2025-11-22","td":"","desc":"1.UPDATE CHEMIADD LOGO ON SALE INVOICE, DEBIT NOTE,CREDIT NOTE,PO--- ATTACHED FOR REFERANCE. 2.ADDRESS IS NOT REFLECTED IN CREDIT NOTE & DEBIT NOTE SCREEN ATTACHED GST CERTIFICATE FOR REFERANCE, 3.INVOICE FORMATE IS NOT PROPER AS HIGHLITED IN THE ATTACHED FILE. 4.BANK ACCOUNT DETAILS IS NOT REFLECTED IN SALE INVOICE ARE Our Bank Details : Chemiadd Asia Pvt Ltd, YES BANK CC A/c (000681300008347),IFSC CODE:YESB0000006","closedOn":"","source":"imported"},{"id":"020","cat":"Others","sub":"General Query","subj":"BANK PAYMENT ENTRIES AND PARTY PAYEMNT EINTIES PROBLEM","by":"AMER","mob":"+91-8886060732","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2025-11-26","td":"","desc":"BANK PAYMENT ENTRIES AND PARTY PAYEMNT EINTIES PROBLEM","closedOn":"","source":"imported"},{"id":"022","cat":"Others","sub":"General Query","subj":"PRODUCT NAME NOT SHOWING AND NAME IS BROWN COLOUR 8116","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-11","td":"","desc":"PRODUCT NAME NOT SHOWING AND NAME IS BROWN COLOUR 8116 | Resolution: Completed","closedOn":"2025-12-11","source":"imported"},{"id":"023","cat":"Others","sub":"General Query","subj":"Pin code not coming in PO","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-18","td":"","desc":"Pin code not coming in PO | Resolution: updated","closedOn":"2025-12-18","source":"imported"},{"id":"025","cat":"Others","sub":"General Query","subj":"Mostly found lagging in streamline and get disconnected in between.","by":"Vishal Kumar Gupta","mob":"+91-9125103103","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-22","td":"","desc":"Mostly found lagging in streamline and get disconnected in between. | Resolution: Here two reasons are there 1)If it is ideal then it will be auto disconnected 2) It is depending on internet on both sides (Server and Client)","closedOn":"2025-12-22","source":"imported"},{"id":"026","cat":"Others","sub":"General Query","subj":"Need filters for the columns in dispatch planning, just like pending sales report.","by":"Saket","mob":"+91-8886678442","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-23","td":"","desc":"Need filters for the columns in dispatch planning, just like pending sales report. | Resolution: Completed","closedOn":"2025-12-23","source":"imported"},{"id":"027","cat":"Others","sub":"General Query","subj":"Remote access shutting down frequently","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-30","td":"","desc":"Remote access shutting down frequently | Resolution: Here 2 types 1) Depending on net speed up and down 2) If you are live for an ideal, then it can be disconnected.","closedOn":"2025-12-30","source":"imported"},{"id":"028","cat":"Others","sub":"General Query","subj":"Remote access shutting down frequently","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2025-12-30","td":"","desc":"Remote access shutting down frequently | Resolution: Explaied for Disconnecting reson from server","closedOn":"2025-12-30","source":"imported"},{"id":"030","cat":"Others","sub":"General Query","subj":"LOT OF PRODUCTS ARE NOT SHOWING IN STOCK LIST PRODUCT WISE SUMMARY REPORT","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-01-31","td":"","desc":"LOT OF PRODUCTS ARE NOT SHOWING IN STOCK LIST PRODUCT WISE SUMMARY REPORT | Resolution: Completed","closedOn":"2026-01-31","source":"imported"},{"id":"031","cat":"Others","sub":"General Query","subj":"Supplier Name is created by Deepika madam but. Supplier code not showing in short name. When trying ...","by":"BCPL","mob":"+91-8886678479","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-02-13","td":"","desc":"Supplier Name is created by Deepika madam but. Supplier code not showing in short name. When trying to edit the data in Creditor Accounts page message is popping\" Please enter GST details...\". PFA for more details. this is the first time i have reached out for resolution through EPR ticket system. But earlier I have discussed with Prabhakar sir directly for same issue of new supplier creation 2 more times before. | Resolution: There are more validations during editing, where if values ​​are not entered, it will not be saved.","closedOn":"2026-02-13","source":"imported"},{"id":"046","cat":"Others","sub":"General Query","subj":"WHILE RUNNING STOCK LEDGER ONE REPORT SHOWING AND WHILE RUNNING SALE BOOK REPORT ONE MORE SHOWING. T...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-02-27","td":"","desc":"WHILE RUNNING STOCK LEDGER ONE REPORT SHOWING AND WHILE RUNNING SALE BOOK REPORT ONE MORE SHOWING. THERE IS QTY MISMATCH | Resolution: No issues there reporting viewing problem","closedOn":"2026-02-27","source":"imported"},{"id":"047","cat":"Others","sub":"General Query","subj":"WHILE RUNNING STOCK LEDGER ONE REPORT SHOWING AND WHILE RUNNING SALE BOOK REPORT ONE MORE SHOWING. T...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-02-27","td":"","desc":"WHILE RUNNING STOCK LEDGER ONE REPORT SHOWING AND WHILE RUNNING SALE BOOK REPORT ONE MORE SHOWING. THERE IS QTY MISMATCH | Resolution: Duplicate ticket no 46","closedOn":"2026-02-27","source":"imported"},{"id":"049","cat":"Others","sub":"General Query","subj":"STOCK NOT COMING DEFAULT WHILE RM PLANNING","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2026-02-27","td":"","desc":"STOCK NOT COMING DEFAULT WHILE RM PLANNING | Resolution: Resolved","closedOn":"2026-02-27","source":"imported"},{"id":"052","cat":"Others","sub":"General Query","subj":"PRODUCT MISSING AND NOT SHOWING WHILE MAKING PO","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-03-05","td":"","desc":"PRODUCT MISSING AND NOT SHOWING WHILE MAKING PO | Resolution: Resolved","closedOn":"2026-03-05","source":"imported"},{"id":"056","cat":"Others","sub":"General Query","subj":"Need Changes in pricing model in erp will share parameters of qty Qty wise we need pricing in erp","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"On Hold","assign":"Pavan","aEmail":"pavan.thakur@blendgroup.in","assignees":[{"name":"Pavan","email":"pavan.thakur@blendgroup.in"}],"raisedOn":"2026-03-25","td":"","desc":"Need Changes in pricing model in erp will share parameters of qty Qty wise we need pricing in erp | Resolution: Discussed with Mounika,need to connect with Shubham sir and conclude.","closedOn":"","source":"imported"},{"id":"062","cat":"Others","sub":"General Query","subj":"As per management instructions, from 2026-27 FY onwards double & Triple BOMs should not come in RM p...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-04-02","td":"","desc":"As per management instructions, from 2026-27 FY onwards double & Triple BOMs should not come in RM planning. | Resolution: As per mail Duplicate BOM are removed","closedOn":"2026-04-02","source":"imported"},{"id":"063","cat":"Others","sub":"General Query","subj":"We have requested to provide the service to plan RM for U7 also like Hyderabad units and screenshot ...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-04-15","td":"","desc":"We have requested to provide the service to plan RM for U7 also like Hyderabad units and screenshot attached FG coming but RM stocks are not updating in planning sheet | Resolution: Completed","closedOn":"2026-04-15","source":"imported"},{"id":"065","cat":"Others","sub":"General Query","subj":"required payment received details in report .if i will filter the name as hari shukla those customer...","by":"Hari shukla","mob":"+91-9453159262","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-04-20","td":"","desc":"required payment received details in report .if i will filter the name as hari shukla those customers in under hari shukla show the details how much payments received till today . Example 14th april to 21st april how many customers payments received .","closedOn":"","source":"imported"},{"id":"066","cat":"Others","sub":"General Query","subj":"Dear Sir, Implementation of ERP new templates are pending... Please look into it sir","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-04-20","td":"","desc":"Dear Sir, Implementation of ERP new templates are pending... Please look into it sir","closedOn":"","source":"imported"},{"id":"067","cat":"Others","sub":"General Query","subj":"Kindly give me access to rejected goods generated and consumed on daily and monthly basis . User Id ...","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-04-21","td":"","desc":"Kindly give me access to rejected goods generated and consumed on daily and monthly basis . User Id is prasantamaharana. | Resolution: m","closedOn":"2026-04-21","source":"imported"},{"id":"068","cat":"Others","sub":"General Query","subj":"Kindly give me access to rejected goods generated and consumed on daily and monthly basis . User Id ...","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-04-21","td":"","desc":"Kindly give me access to rejected goods generated and consumed on daily and monthly basis . User Id is prasantamaharana. | Resolution: closed","closedOn":"2026-04-21","source":"imported"},{"id":"069","cat":"Others","sub":"General Query","subj":"Reuesting you to please follow the same system of BC in BA as well.. Accounts, NMSP, Product, Produc...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-04-27","td":"","desc":"Reuesting you to please follow the same system of BC in BA as well.. Accounts, NMSP, Product, Product Application, Flow should be similar way .. Need to impleement NMSP in BA on priority","closedOn":"","source":"imported"},{"id":"070","cat":"Others","sub":"General Query","subj":"Reuesting you to please follow the same system of BC in BA as well.. Accounts, NMSP, Product, Produc...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-04-27","td":"","desc":"Reuesting you to please follow the same system of BC in BA as well.. Accounts, NMSP, Product, Product Application, Flow should be similar way .. Need to impleement NMSP in BA on priority | Resolution: Duplicate TKT-69","closedOn":"2026-04-27","source":"imported"},{"id":"072","cat":"Others","sub":"General Query","subj":"Need stock aging report .","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-06","td":"","desc":"Need stock aging report . | Resolution: Resolved","closedOn":"2026-05-06","source":"imported"},{"id":"073","cat":"Others","sub":"General Query","subj":"Need stock aging report .","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-06","td":"","desc":"Need stock aging report . | Resolution: Duplicate as TKT-72","closedOn":"2026-05-06","source":"imported"},{"id":"074","cat":"Others","sub":"General Query","subj":"Need stock aging report.","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-06","td":"","desc":"Need stock aging report. | Resolution: Duplicate as TKT-72","closedOn":"2026-05-06","source":"imported"},{"id":"076","cat":"Others","sub":"General Query","subj":"Read-only user access to Streamline ERP to Mr.Rohit Bhattad 9966866886","by":"PRIYANKASHARMA","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-18","td":"","desc":"Read-only user access to Streamline ERP to Mr.Rohit Bhattad 9966866886","closedOn":"","source":"imported"},{"id":"077","cat":"Others","sub":"General Query","subj":"Please provide the ERP Access For BCPL & BACPL to My ERP ID mouni","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-18","td":"","desc":"Please provide the ERP Access For BCPL & BACPL to My ERP ID mouni | Resolution: Updated","closedOn":"2026-05-18","source":"imported"},{"id":"078","cat":"Others","sub":"General Query","subj":"Please upload the new designations in Streamline.","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-18","td":"","desc":"Please upload the new designations in Streamline. | Resolution: Bulk updated","closedOn":"2026-05-18","source":"imported"},{"id":"079","cat":"Others","sub":"General Query","subj":"Please upload the new designations in Streamline.","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-18","td":"","desc":"Please upload the new designations in Streamline. | Resolution: Duplicate","closedOn":"2026-05-18","source":"imported"},{"id":"080","cat":"Others","sub":"General Query","subj":"Please check the present attendance system and salary entry updating system in BACPL. Currently, all...","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-18","td":"","desc":"Please check the present attendance system and salary entry updating system in BACPL. Currently, all salary calculations are being done manually, and a JE is updating the salary entries. Could you please check whether the same process followed in BCPL can be implemented in BACPL as well","closedOn":"","source":"imported"},{"id":"081","cat":"Others","sub":"General Query","subj":"Please check the present attendance system and salary entry updating system in BACPL. Currently, all...","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-18","td":"","desc":"Please check the present attendance system and salary entry updating system in BACPL. Currently, all salary calculations are being done manually, and a JE is updating the salary entries. Could you please check whether the same process followed in BCPL can be implemented in BACPL as well","closedOn":"","source":"imported"},{"id":"082","cat":"Others","sub":"General Query","subj":"I am writing to follow up on the issue we have been discussing for some time. Despite our previous c...","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-18","td":"","desc":"I am writing to follow up on the issue we have been discussing for some time. Despite our previous conversations, the requested correction has not yet been implemented on your end. Ex: Raju pay slip i am attaching for your reference As per calculation he supposed to receive 27,950/- rs but 1Rs less from his salary due to earned calculation is wrong","closedOn":"","source":"imported"},{"id":"085","cat":"Others","sub":"General Query","subj":"Please upload the new designations in Streamline.","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-18","td":"","desc":"Please upload the new designations in Streamline.","closedOn":"","source":"imported"},{"id":"092","cat":"Others","sub":"General Query","subj":"Closing stock of 2025-26 and opening stock of 2026-27 is not matching and ref image attached Please ...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-19","td":"","desc":"Closing stock of 2025-26 and opening stock of 2026-27 is not matching and ref image attached Please check and clear the issue","closedOn":"","source":"imported"},{"id":"093","cat":"Others","sub":"General Query","subj":"In every transaction screen, we are facing an intermittent issue where the system displays the error...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-19","td":"","desc":"In every transaction screen, we are facing an intermittent issue where the system displays the error message: “Something went wrong, Can’t save, Please try again.” When this happens, we currently ask the supervisor to delete the empty voucher and refresh the screen, after which another user is able to use the screen again. We need to identify the root cause of this issue and implement a permanent fix to close it completely.","closedOn":"","source":"imported"},{"id":"094","cat":"Others","sub":"General Query","subj":"In every transaction screen, we are facing an intermittent issue where the system displays the error...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-19","td":"","desc":"In every transaction screen, we are facing an intermittent issue where the system displays the error message: “Something went wrong, Can’t save, Please try again.” When this happens, we currently ask the supervisor to delete the empty voucher and refresh the screen, after which another user is able to use the screen again. We need to identify the root cause of this issue and implement a permanent fix to close it completely.","closedOn":"","source":"imported"},{"id":"098","cat":"Others","sub":"General Query","subj":"Dear Sir, Purchase team has raised the IDM on Innovation department for Stock clearance. Previously,...","by":"Vishal Kumar Gupta","mob":"+91-9125103103","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-19","td":"","desc":"Dear Sir, Purchase team has raised the IDM on Innovation department for Stock clearance. Previously, Srikanth from RM Dept has Stock conversion option for clearing the stocks, but now, they don't have any such options to do so, resulting RM stocks are showing in Innovation WH area. So, kindly request you to please do the needful so that these issues will be resolved ASAP and will not suffer in future.","closedOn":"","source":"imported"},{"id":"099","cat":"Others","sub":"General Query","subj":"Dear Sir, Purchase team has raised the IDM on Innovation department for Stock clearance. Previously,...","by":"Vishal Kumar Gupta","mob":"+91-9125103103","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-19","td":"","desc":"Dear Sir, Purchase team has raised the IDM on Innovation department for Stock clearance. Previously, Srikanth from RM Dept has Stock conversion option for clearing the stocks, but now, they don't have any such options to do so, resulting RM stocks are showing in Innovation WH area. So, kindly request you to please do the needful so that these issues will be resolved ASAP and will not suffer in future.","closedOn":"","source":"imported"},{"id":"105","cat":"Others","sub":"General Query","subj":"give access to new user as per the requests below. @Prabhakar Godha Sir this is for your information...","by":"HR","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"give access to new user as per the requests below. @Prabhakar Godha Sir this is for your information that Mr.Akash Dev joined in fibre department Please give streamline training and access to him","closedOn":"","source":"imported"},{"id":"106","cat":"Others","sub":"General Query","subj":"give access to new user as per the requests below. @Prabhakar Godha Sir this is for your information...","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"give access to new user as per the requests below. @Prabhakar Godha Sir this is for your information that Mr.Akash Dev joined in fibre department Please give streamline training and access to him","closedOn":"","source":"imported"},{"id":"107","cat":"Others","sub":"General Query","subj":"Problem in Saving the Transaction in the Receipt from Production Entry -- Production Scrap saving in...","by":"BCPL","mob":"+91-9885012915","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-20","td":"","desc":"Problem in Saving the Transaction in the Receipt from Production Entry -- Production Scrap saving in the Wastage Godwon U3 - Refer to the Image | Resolution: Resolved","closedOn":"2026-05-20","source":"imported"},{"id":"109","cat":"Others","sub":"General Query","subj":"SO25-15646 (Blend Rajkot Billing Issue), the pending quantity for Blend Coating White 2772 P EC was ...","by":"kabir prasad mohapatra","mob":"+91-8780069996","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"SO25-15646 (Blend Rajkot Billing Issue), the pending quantity for Blend Coating White 2772 P EC was only 1 MT , however the Dispatch Team billed and dispatched 5 MT .","closedOn":"","source":"imported"},{"id":"111","cat":"Others","sub":"General Query","subj":"Need Streamline access of Unit-5 for all SCM Team. Pending Sales Order Report Sales reports Stocks r...","by":"Mohd Amer Shareef","mob":"+91-7036222204","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"Need Streamline access of Unit-5 for all SCM Team. Pending Sales Order Report Sales reports Stocks reports","closedOn":"","source":"imported"},{"id":"112","cat":"Others","sub":"General Query","subj":"For RM creation, SQD to create new RM master and raise for approval to Aabraham – Only after the app...","by":"Aabraham","mob":"+91-9940336991","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"For RM creation, SQD to create new RM master and raise for approval to Aabraham – Only after the approval RM should enter our product master.","closedOn":"","source":"imported"},{"id":"113","cat":"Others","sub":"General Query","subj":"1) Proforma Invoice 2) Commercial Invoice and Packing List 3) Monthly and Yearly wise statement repo...","by":"vinay","mob":"+91-9989665739","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-20","td":"","desc":"1) Proforma Invoice 2) Commercial Invoice and Packing List 3) Monthly and Yearly wise statement report 4) Customers Payment overdue and payment recived data","closedOn":"","source":"imported"},{"id":"114","cat":"Others","sub":"General Query","subj":"As communicated earlier, Blend 40 Blue 15:1 440965 P still showing double while planning RM please c...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-21","td":"","desc":"As communicated earlier, Blend 40 Blue 15:1 440965 P still showing double while planning RM please clear the issue","closedOn":"","source":"imported"},{"id":"115","cat":"Others","sub":"General Query","subj":"Bulk Bulk bom change as per mail sent to Prabhaker on 19.05.2026 Product excel sheet given in mail","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-21","td":"","desc":"Bulk Bulk bom change as per mail sent to Prabhaker on 19.05.2026 Product excel sheet given in mail","closedOn":"","source":"imported"},{"id":"116","cat":"Others","sub":"General Query","subj":"Bulk Bulk bom change as per mail sent to Prabhaker on 19.05.2026 Product excel sheet given in mail","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-21","td":"","desc":"Bulk Bulk bom change as per mail sent to Prabhaker on 19.05.2026 Product excel sheet given in mail | Resolution: As per mail updated","closedOn":"2026-05-21","source":"imported"},{"id":"117","cat":"Others","sub":"General Query","subj":"Bayplast Yellow G 2025-26 BALANCE IS 4.2 KGS BUT 2026-27 STOCK LEDGER NOT SHOWING THIS GRADE attache...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-21","td":"","desc":"Bayplast Yellow G 2025-26 BALANCE IS 4.2 KGS BUT 2026-27 STOCK LEDGER NOT SHOWING THIS GRADE attached are ref images | Resolution: it is corrected as laster year, RM Group name is missing","closedOn":"2026-05-21","source":"imported"},{"id":"118","cat":"Others","sub":"General Query","subj":"give access to new user as per the requests below. Job Card crate and issue as per new product and r...","by":"BCPL","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-21","td":"","desc":"give access to new user as per the requests below. Job Card crate and issue as per new product and regular product Daily Basis trial job Card feeding as per Machine. Down time feeding. Sample Letter issue against SRQ and Development ID. Daily trials records. Manage Samples and dept. records.","closedOn":"","source":"imported"},{"id":"119","cat":"Others","sub":"General Query","subj":"give access to new user as per the requests below. Job Card crate and issue as per new product and r...","by":"BCPL","mob":"+91-9010976921","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-21","td":"","desc":"give access to new user as per the requests below. Job Card crate and issue as per new product and regular product Daily Basis trial job Card feeding as per Machine. Down time feeding. Sample Letter issue against SRQ and Development ID. Daily trials records. Manage Samples and dept. records. | Resolution: Updated","closedOn":"2026-05-21","source":"imported"},{"id":"120","cat":"Others","sub":"General Query","subj":"Need access to 1.stock ageing report. 2.Standard BOM price and new BOM price when there is change in...","by":"Blend  Colour  Pvt Ltd","mob":"+91-8308829818","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-21","td":"","desc":"Need access to 1.stock ageing report. 2.Standard BOM price and new BOM price when there is change in BOM for cost reduction","closedOn":"","source":"imported"},{"id":"123","cat":"Others","sub":"General Query","subj":"BCPL & BACPL Templetes are pending BACPL need to follow complete system as per BCPL - accounts, prod...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-22","td":"","desc":"BCPL & BACPL Templetes are pending BACPL need to follow complete system as per BCPL - accounts, products, sales production & everywhere. its pending from so long. Need the target date to close it","closedOn":"","source":"imported"},{"id":"124","cat":"Others","sub":"General Query","subj":"GST Credit Note Access to be granted to Pankaj Dubey's ERP ID for both","by":"BCPL","mob":"+91-9407121248","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-22","td":"","desc":"GST Credit Note Access to be granted to Pankaj Dubey's ERP ID for both","closedOn":"","source":"imported"},{"id":"128","cat":"Others","sub":"General Query","subj":"Negative entry allowed while making DC and attached is the screenshot","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-23","td":"","desc":"Negative entry allowed while making DC and attached is the screenshot | Resolution: Product was taken on MR-KTD-128 \non 29th May that way it is taken Overall Product Qty.Now i am lock date wise stock","closedOn":"2026-05-23","source":"imported"},{"id":"129","cat":"Others","sub":"General Query","subj":"FSO order to SO conversation - fso should convert in FIFO base","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-23","td":"","desc":"FSO order to SO conversation - fso should convert in FIFO base","closedOn":"","source":"imported"},{"id":"133","cat":"Others","sub":"General Query","subj":"Dear Sir, We need to take serious action on planning module and we need to run this module from July...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Dear Sir, We need to take serious action on planning module and we need to run this module from July 1st week without fail and no issues should come So , please start this project immediately and get it ready by 15.06.2026 for trails and 15 days we will have trail runs and 01.07.2026 we need to start this project as per requirements explained ealier Thanks","closedOn":"","source":"imported"},{"id":"134","cat":"Others","sub":"General Query","subj":"Blend Black 20 E REQURIEMENT ISSUE NOT CLOSED AS PER SCM THERE IS NO REQUIREMENT BUT IN PLANNING SHE...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Blend Black 20 E REQURIEMENT ISSUE NOT CLOSED AS PER SCM THERE IS NO REQUIREMENT BUT IN PLANNING SHEET SHOWING DOUBLE REQUIREMENTS AND NOT MATCHING IN ANY AREA","closedOn":"","source":"imported"},{"id":"135","cat":"Others","sub":"General Query","subj":"Blend Black 20 E REQURIEMENT ISSUE NOT CLOSED AS PER SCM THERE IS NO REQUIREMENT BUT IN PLANNING SHE...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Blend Black 20 E REQURIEMENT ISSUE NOT CLOSED AS PER SCM THERE IS NO REQUIREMENT BUT IN PLANNING SHEET SHOWING DOUBLE REQUIREMENTS AND NOT MATCHING IN ANY AREA","closedOn":"","source":"imported"},{"id":"136","cat":"Others","sub":"General Query","subj":"Please updated BACPL productgroup properties - sharing excel file through mail for bulk update","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Please updated BACPL productgroup properties - sharing excel file through mail for bulk update","closedOn":"","source":"imported"},{"id":"137","cat":"Others","sub":"General Query","subj":"Access for the Sales Promotion Screen. (View and Edit)","by":"Pavan Thakur","mob":"+91-9403646092","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Access for the Sales Promotion Screen. (View and Edit)","closedOn":"","source":"imported"},{"id":"139","cat":"Others","sub":"General Query","subj":"Dear Team, Please update the TDS Assessee Type and PAN details for the specified accounts as per the...","by":"Deepika Mudda","mob":"+91-9963390779","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Dear Team, Please update the TDS Assessee Type and PAN details for the specified accounts as per the Excel sheet provided. Kindly refer to the updated PAN & TDS Assessee Type mentioned in the sheet Please confirm once it is completed.","closedOn":"","source":"imported"},{"id":"140","cat":"Others","sub":"General Query","subj":"Deletion of Inactive Accounts from Streamline","by":"Deepika Mudda","mob":"+91-9963390779","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-25","td":"","desc":"Deletion of Inactive Accounts from Streamline","closedOn":"","source":"imported"},{"id":"142","cat":"Others","sub":"General Query","subj":"PHYSICAL STOCK SHOWING WRONG IN RM PLANNING SHEET FOR EXAMPLE Aluminium Pellets-MMPELPE-W20 Stock sh...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-26","td":"","desc":"PHYSICAL STOCK SHOWING WRONG IN RM PLANNING SHEET FOR EXAMPLE Aluminium Pellets-MMPELPE-W20 Stock showing in stock report is 2147 kgs but while planning the RM it is showing 18877 kgs in phy stock area this is a serious issues and because of this one product EDD missed last week Like these another two products observed and so this is serious issues | Resolution: Corrected it","closedOn":"2026-05-26","source":"imported"},{"id":"143","cat":"Others","sub":"General Query","subj":"PHYSICAL STOCK SHOWING WRONG IN RM PLANNING SHEET FOR EXAMPLE Aluminium Pellets-MMPELPE-W20 Stock sh...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-26","td":"","desc":"PHYSICAL STOCK SHOWING WRONG IN RM PLANNING SHEET FOR EXAMPLE Aluminium Pellets-MMPELPE-W20 Stock showing in stock report is 2147 kgs but while planning the RM it is showing 18877 kgs in phy stock area this is a serious issues and because of this one product EDD missed last week Like these another two products observed and so this is serious issues | Resolution: Duplicate as TKT-143","closedOn":"2026-05-26","source":"imported"},{"id":"145","cat":"Others","sub":"General Query","subj":"As discussed in the last MCM meeting, we have received requests from employees to include loan detai...","by":"yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-27","td":"","desc":"As discussed in the last MCM meeting, we have received requests from employees to include loan details in the payslips. Kindly work on this requirement and update the same at the earliest. Also, please let us know by when we can issue the payslips to employees, as we are continuously receiving requests regarding this matter. Please try to resolve the issue and provide an update as soon as possible.","closedOn":"","source":"imported"},{"id":"146","cat":"Others","sub":"General Query","subj":"For Sales Order SO25-15646 (Blend Rajkot Billing Issue) , the pending quantity for Blend Coating Whi...","by":"kabir prasad mohapatra","mob":"+91-8780069996","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-27","td":"","desc":"For Sales Order SO25-15646 (Blend Rajkot Billing Issue) , the pending quantity for Blend Coating White 2772 P EC was only 1 MT . However, the Dispatch Team has incorrectly billed and dispatched 5 MT , resulting in an excess dispatch of 4 MT .","closedOn":"","source":"imported"},{"id":"148","cat":"Others","sub":"General Query","subj":"Kindly confirm if Stock is reflected through MRN Entry and not the Purchase entry The mentioned MRN ...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-27","td":"","desc":"Kindly confirm if Stock is reflected through MRN Entry and not the Purchase entry The mentioned MRN Were already taken in FY 25-26 and purchase entries against these MRN were taken in Current year, but stock is reflected in both the years, kindly check the issue once and confirm whether we are making any error in our process. MRN -BUR -1494 dated 08/12/2026 MRN -BUR -1495 dated 08/12/2026 MRN -BUR -1496 dated 12/12/2026 MRN -BUR -1497 dated 12/12/2026 | Resolution: While we MR pending transferring from LY to CY it showing as pending that way i am carrying it forward, but after c/f they are taking MR to Purchase this is wrong know.","closedOn":"2026-05-27","source":"imported"},{"id":"151","cat":"Others","sub":"General Query","subj":"Stock TOD Report --- Need 2 Separate report for RM and FG Need Product Category till Child 3 in this...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-28","td":"","desc":"Stock TOD Report --- Need 2 Separate report for RM and FG Need Product Category till Child 3 in this Report Present RM TOD Report access to be given to below ID --Sampat, Eswar, Priyanka, Prasanta, Shubham Sir, Pavan Present FG TOD Report access to be given to below ID --Kabir, Ameer, Shubam Sir, Prasanta, Priyanka, Pavan Further need this report to fetch data for 24 months --Qty Sold for FG, Qty Purchase for RM --Avg to be taken based on 24 months data --as discussed with Pavan Sir. Further development on this","closedOn":"","source":"imported"},{"id":"155","cat":"Others","sub":"General Query","subj":"Material Receipt DC","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-30","td":"","desc":"Material Receipt DC | Resolution: Given access to ahmadabad and Vapi Branches and Material DC will be Blend to Blend accepted.","closedOn":"2026-05-30","source":"imported"},{"id":"156","cat":"Others","sub":"General Query","subj":"FG cost estimate screen is not functioning like before. BOM not geeting auto selected, group effecte...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Closed","assign":"Prabhakar","aEmail":"prabhakar.godha@blendgroup.in","assignees":[{"name":"Prabhakar","email":"prabhakar.godha@blendgroup.in"}],"raisedOn":"2026-05-30","td":"","desc":"FG cost estimate screen is not functioning like before. BOM not geeting auto selected, group effected date note getting default. | Resolution: The date selection option is there. So Now unlinked","closedOn":"2026-05-30","source":"imported"},{"id":"157","cat":"Others","sub":"General Query","subj":"The U3 attendance server is currently not showing attendance records. Kindly look into this issue on...","by":"BCPL","mob":"+91-9700226612","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-30","td":"","desc":"The U3 attendance server is currently not showing attendance records. Kindly look into this issue on priority and resolve it at the earliest. I have to considered the white-collar staff attendance through biometric access for salary processing. Therefore, your immediate support is required.","closedOn":"","source":"imported"},{"id":"158","cat":"Others","sub":"General Query","subj":"The U3 attendance server is currently not showing attendance records. Kindly look into this issue on...","by":"BCPL","mob":"+91-9700226612","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-30","td":"","desc":"The U3 attendance server is currently not showing attendance records. Kindly look into this issue on priority and resolve it at the earliest. I have to considered the white-collar staff attendance through biometric access for salary processing. Therefore, your immediate support is required","closedOn":"","source":"imported"},{"id":"160","cat":"Others","sub":"General Query","subj":"REG. RM PLANNING FOR FINAL PENDING FG NEED TO CONSIDER BELOW WAREHOUSE STOCKS FINISHED GOODS GODOWN-...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-30","td":"","desc":"REG. RM PLANNING FOR FINAL PENDING FG NEED TO CONSIDER BELOW WAREHOUSE STOCKS FINISHED GOODS GODOWN----WITH RESPECTIVE UNIT NO QUARENTINE FOR PHY STOCK SHOULD CONSIDER FROM FOLLOWING GODOWNS RAW MATERIAL WAREHOUSE----WITH RESPECTIVE UNIT NO RESERVED STOCK UNIT---WITH RESPCTIVE UNIT NO","closedOn":"","source":"imported"},{"id":"162","cat":"Others","sub":"General Query","subj":"Kindly allow DC entry access to both User ID at Vapi and Ahemdabad Godown --This is required as both...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-05-31","td":"","desc":"Kindly allow DC entry access to both User ID at Vapi and Ahemdabad Godown --This is required as both warehouse have same GSTIN and internal movement of goods between Godown is through DC and not Tax Invoice.","closedOn":"","source":"imported"},{"id":"165","cat":"Others","sub":"General Query","subj":"Request for Deletion of SPDF-1362 from Streamline","by":"vinay","mob":"+91-9989665739","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-02","td":"","desc":"Request for Deletion of SPDF-1362 from Streamline","closedOn":"","source":"imported"},{"id":"166","cat":"Others","sub":"General Query","subj":"Request for Deletion of SPDF-1362 from Streamline","by":"vinay","mob":"+91-9989665739","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-02","td":"","desc":"Request for Deletion of SPDF-1362 from Streamline","closedOn":"","source":"imported"},{"id":"167","cat":"Others","sub":"General Query","subj":"Request for Deletion of SPDF-1362 from Streamline. Kindly delete SPDF-1362 from Streamline. This ord...","by":"vinay","mob":"+91-9989665739","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-02","td":"","desc":"Request for Deletion of SPDF-1362 from Streamline. Kindly delete SPDF-1362 from Streamline. This order was initially created for sample dispatch to the customer. However, the material is now being dispatched as a commercial shipment. In view of the above, please proceed with deletion of the entry in Streamline and arrange to transfer the stock to the current year.","closedOn":"","source":"imported"},{"id":"168","cat":"Others","sub":"General Query","subj":"Please give Streamline access to Neelam Singh Sharad pandey ji customers ledger access and order pun...","by":"Yamini","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-02","td":"","desc":"Please give Streamline access to Neelam Singh Sharad pandey ji customers ledger access and order punching @Prabhakar Godha marketing executive access which we give. Sharad pandey account need to give.","closedOn":"","source":"imported"},{"id":"169","cat":"Others","sub":"General Query","subj":"Please give Streamline access to Neelam Singh Sharad pandey ji customers ledger access and order pun...","by":"bcpl","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-02","td":"","desc":"Please give Streamline access to Neelam Singh Sharad pandey ji customers ledger access and order punching @Prabhakar Godha marketing executive access which we give. Sharad pandey account need to give.","closedOn":"","source":"imported"},{"id":"170","cat":"Others","sub":"General Query","subj":"Please Grant Cash Receipt and Cash Payment Access to below ID's Lalit Rathi Mohan PriyankaSharma Pra...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-03","td":"","desc":"Please Grant Cash Receipt and Cash Payment Access to below ID's Lalit Rathi Mohan PriyankaSharma PrasantaSwain Amer","closedOn":"","source":"imported"},{"id":"171","cat":"Others","sub":"General Query","subj":"Please Grant Cash Receipt and Cash Payment Access to below ID's Lalit Rathi Mohan PriyankaSharma Pra...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-03","td":"","desc":"Please Grant Cash Receipt and Cash Payment Access to below ID's Lalit Rathi Mohan PriyankaSharma PrasantaSwain Amer","closedOn":"","source":"imported"},{"id":"174","cat":"Others","sub":"General Query","subj":"KINDLY ALLOW ENTRY NON GST CREDIT NOTE ID AHMEDABAD WAREHOUSE PLEASE PROVIDE SIR","by":"AHMEDABAD","mob":"+91-9157798116","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-04","td":"","desc":"KINDLY ALLOW ENTRY NON GST CREDIT NOTE ID AHMEDABAD WAREHOUSE PLEASE PROVIDE SIR","closedOn":"","source":"imported"},{"id":"176","cat":"Others","sub":"General Query","subj":"Remove Belgavi from Warehouse list in ERP with effect from 05.06.2026, All the Vocuher series relate...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-05","td":"","desc":"Remove Belgavi from Warehouse list in ERP with effect from 05.06.2026, All the Vocuher series related to Belgavi are to be removed. Kindly ensure past entries are not impacted.","closedOn":"","source":"imported"},{"id":"178","cat":"Others","sub":"General Query","subj":"Please upload the document in the employee policies tab.","by":"BCPL","mob":"+91-9885004191","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-06","td":"","desc":"Please upload the document in the employee policies tab.","closedOn":"","source":"imported"},{"id":"179","cat":"Others","sub":"General Query","subj":"Branch cum purchase - U7 - remove access","by":"Shubham","mob":"+91-8099137844","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-06","td":"","desc":"Branch cum purchase - U7 - remove access","closedOn":"","source":"imported"},{"id":"180","cat":"Others","sub":"General Query","subj":"Please create a new ERP Id for Unit 3 Quality Leader - Kaushal Email sent on 04-05-2026","by":"BCPL","mob":"+91-8849501201","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-09","td":"","desc":"Please create a new ERP Id for Unit 3 Quality Leader - Kaushal Email sent on 04-05-2026","closedOn":"","source":"imported"},{"id":"183","cat":"Others","sub":"General Query","subj":"@Prabhakar Sir, please keep the old code as an alternative in \"Short Name 1\". The files mentioned ab...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-10","td":"","desc":"@Prabhakar Sir, please keep the old code as an alternative in \"Short Name 1\". The files mentioned above are not being captured. For example: Blend PE 100 R D – This grade has a lot of transactions and is an old, regularly used grade, so the same code should be retained. Blend PE 100 R D A – This grade has very few transactions, so the code can be changed without any issue. My point is that regular and frequently used grades should continue with the same code, while codes for less-used grades can be changed. Also, we need to inform to everyone that codes have been changed","closedOn":"","source":"imported"},{"id":"184","cat":"Others","sub":"General Query","subj":"@Prabhakar Sir, please keep the old code as an alternative in \"Short Name 1\". The files mentioned ab...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-10","td":"","desc":"@Prabhakar Sir, please keep the old code as an alternative in \"Short Name 1\". The files mentioned above are not being captured. For example: Blend PE 100 R D – This grade has a lot of transactions and is an old, regularly used grade, so the same code should be retained. Blend PE 100 R D A – This grade has very few transactions, so the code can be changed without any issue. My point is that regular and frequently used grades should continue with the same code, while codes for less-used grades can be changed. Also, we need to inform to everyone that codes have been changed","closedOn":"","source":"imported"},{"id":"185","cat":"Others","sub":"General Query","subj":"As disscused along with shubham sir & Pavan sir Product Master: Product duplication issue. BOM link ...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-10","td":"","desc":"As disscused along with shubham sir & Pavan sir Product Master: Product duplication issue. BOM link is missing after product name changes. Space issue between product names. Product code duplication. No email notification sent for BOM freezing/cancellation. Category mismatch during product upload as per the provided sheet. Sales & Operations: Old locking system is not available for 2026. Debtors authorization for my ID FSO closure to be done on FIFO basis. Products linked to masters are not showing properly after name changes. Bulk BOM update option required for RM changes. Screen-struck related issues. Export order date. Export document enhancements (PI, Pack Label, Export Statement).","closedOn":"","source":"imported"},{"id":"186","cat":"Others","sub":"General Query","subj":"As disscused along with shubham sir & Pavan sir Product Master: Product duplication issue. BOM link ...","by":"Mounika","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-10","td":"","desc":"As disscused along with shubham sir & Pavan sir Product Master: Product duplication issue. BOM link is missing after product name changes. Space issue between product names. Product code duplication. No email notification sent for BOM freezing/cancellation. Category mismatch during product upload as per the provided sheet. Sales & Operations: Old locking system is not available for 2026. Debtors authorization for my ID FSO closure to be done on FIFO basis. Products linked to masters are not showing properly after name changes. Bulk BOM update option required for RM changes. Screen-struck related issues. Export order date. Export document enhancements (PI, Pack Label, Export Statement).","closedOn":"","source":"imported"},{"id":"191","cat":"Others","sub":"General Query","subj":"I want Access for putting Sales Promotion Values Entries. It is very crucial for Making Margin Repor...","by":"Pavan Thakur","mob":"+91-9403646092","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-11","td":"","desc":"I want Access for putting Sales Promotion Values Entries. It is very crucial for Making Margin Report","closedOn":"","source":"imported"},{"id":"192","cat":"Others","sub":"General Query","subj":"New Sales Promotion Report not fetching Entries from Commission Sales Promotion. So please link this","by":"Pavan Thakur","mob":"+91-9403646092","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-11","td":"","desc":"New Sales Promotion Report not fetching Entries from Commission Sales Promotion. So please link this","closedOn":"","source":"imported"},{"id":"194","cat":"Others","sub":"General Query","subj":"As Bangalore and Belagavi share the same GSTIN, to complete the Stock Transfer entry in ERP, please ...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-12","td":"","desc":"As Bangalore and Belagavi share the same GSTIN, to complete the Stock Transfer entry in ERP, please grant Internal DC access to the following user IDs: Rajender ID Siddu Swamy ID Once the Stock Transfer process is completed, please remove the Internal DC access from Siddu Swamy ID. Additionally, please grant PI-D access to Rajender ID for processing Sales Return entries through Tax Invoices.","closedOn":"","source":"imported"},{"id":"195","cat":"Others","sub":"General Query","subj":"Please grant Below Voucher series access to Chandra Mohan Purchase vocher Import Purchase vocher Gen...","by":"BCPL","mob":"+91-7036228007","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-12","td":"","desc":"Please grant Below Voucher series access to Chandra Mohan Purchase vocher Import Purchase vocher Gen GST Purchase vochar Cap GST","closedOn":"","source":"imported"},{"id":"196","cat":"Others","sub":"General Query","subj":"Pending order issue in bom formulation for example Valta LV Smoke Grey EP239 required FG qty is 3.9M...","by":"BCPL","mob":"+91-8886678441","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-15","td":"","desc":"Pending order issue in bom formulation for example Valta LV Smoke Grey EP239 required FG qty is 3.9MT and as per BOM 3890 kgs required but coming in Raw Material required for Pending Orders report it showing 3,018.840 for 3900 kgs requirement. Ref. Screenshot attached","closedOn":"","source":"imported"},{"id":"197","cat":"Others","sub":"General Query","subj":"The FG lot numbers are not of uniform width. Especially in Unit 3 where there are more than 10 extru...","by":"BCPL - Aabraham","mob":"+91-9940336991","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-15","td":"","desc":"The FG lot numbers are not of uniform width. Especially in Unit 3 where there are more than 10 extruders. The second digit of the lot number is 2 digits. We need to have uniform length.","closedOn":"","source":"imported"},{"id":"198","cat":"Others","sub":"General Query","subj":"A new team member has joined the SCM department as an Intern for a period of one month. Later he wil...","by":"bcpl","mob":"+91-9010976921","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-17","td":"","desc":"A new team member has joined the SCM department as an Intern for a period of one month. Later he will be designated as an Executive Trainee. Kindly provide the required Streamline system access @Kabir Mohapatra Please share what access required","closedOn":"","source":"imported"},{"id":"199","cat":"Others","sub":"General Query","subj":"FGEST screen - BOM is still not coming as per earlier - update on this ticket","by":"shubham","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-19","td":"","desc":"FGEST screen - BOM is still not coming as per earlier - update on this ticket","closedOn":"","source":"imported"},{"id":"200","cat":"Others","sub":"General Query","subj":"For any FG & RM product creation across all units, the initial approval should be obtained from Shub...","by":"shubham","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-19","td":"","desc":"For any FG & RM product creation across all units, the initial approval should be obtained from Shubham Sir before proceeding further. Kindly make the necessary changes in the workflow and provide the required access/approval rights to Shubham Sir's ID .","closedOn":"","source":"imported"},{"id":"201","cat":"Others","sub":"General Query","subj":"For any FG & RM product creation across all units, the initial approval should be obtained from Shub...","by":"shubham","mob":"+91-9885045661","email":"","prio":"Medium","status":"Open","assign":"Unassigned","aEmail":"","assignees":[],"raisedOn":"2026-06-19","td":"","desc":"For any FG & RM product creation across all units, the initial approval should be obtained from Shubham Sir before proceeding further. Kindly make the necessary changes in the workflow and provide the required access/approval rights to Shubham Sir's ID .","closedOn":"","source":"imported"}];
+function seedLegacy(){
+  if(localStorage.getItem('blend_seeded')==='1')return;
+  var existing=loadStore();
+  var existingIds={};existing.forEach(function(t){existingIds[t.id]=1;});
+  var toAdd=LEGACY_TICKETS.filter(function(t){return!existingIds[t.id];});
+  if(toAdd.length){
+    var merged=toAdd.concat(existing);
+    merged.sort(function(a,b){var ai=parseInt(a.id)||0,bi=parseInt(b.id)||0;return bi-ai;});
+    localStorage.setItem('blend_tickets',JSON.stringify(merged));
+  }
+  localStorage.setItem('blend_seeded','1');
+}
+seedLegacy();
+
+var tkts=loadStore();
+var mlog=[];
+var savedCnt=parseInt(localStorage.getItem('blend_cnt')||'202',10);
+var cnt=isNaN(savedCnt)||savedCnt<202?202:savedCnt;
+if(tkts.length){
+  var maxId=tkts.reduce(function(m,t){var n=parseInt(t.id,10);return isNaN(n)?m:Math.max(m,n);},201);
+  if(maxId>=cnt)cnt=maxId+1;
+}
+var CU={name:'',email:'',local:'',initials:''};
+var selAsgn=[];
+var pendingAtts=[]; // [{name,type,dataURL}]
+var epAtts=[];      // attachments in edit panel
+
+// ══ TEAMS SDK ══
+function initTeams(){
+  try{
+    microsoftTeams.app.initialize().then(function(){
+      microsoftTeams.app.getContext().then(function(ctx){
+        if(!ctx)return;
+        var n='',e='';
+        if(ctx.user){n=ctx.user.displayName||'';e=ctx.user.loginHint||ctx.user.userPrincipalName||'';}
+        if(e)applyUser(n||e.split('@')[0],e);
+      }).catch(function(){});
+    }).catch(function(){});
+  }catch(e){}
+}
+function applyUser(n,e){
+  if(!e||e.indexOf('@')<0)return;
+  CU.name=n;CU.email=e;CU.local=e.split('@')[0];
+  var p=n.split(' ');CU.initials=((p[0]||'')[0]||'').toUpperCase()+((p[1]||'')[0]||'').toUpperCase();
+  var av=G('UAV'),un=G('UNM');if(av)av.textContent=CU.initials||'U';if(un)un.textContent=n;
+  var fn=G('F_NM');if(fn&&!fn.value)fn.value=n;
+  var fe=G('F_EM');if(fe&&!fe.value)fe.value=e;
+  var ms=G('MY_SUB');if(ms)ms.textContent='Tickets for '+e;
+  if(G('V2')&&G('V2').style.display!=='none')renderMy();
+}
+
+// ══ UTILS ══
+function G(id){return document.getElementById(id);}
+function GV(id){var e=G(id);return e?e.value.trim():'';}
+function today(){return new Date().toISOString().slice(0,10);}
+function fmt(s){if(!s)return'—';var d=new Date(s+'T00:00:00');if(isNaN(d))return'—';return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+function diff(s){if(!s)return null;var n=new Date();n.setHours(0,0,0,0);var t=new Date(s+'T00:00:00');t.setHours(0,0,0,0);return Math.round((t-n)/86400000);}
+function nid(){saveStore();var s=String(cnt++);while(s.length<3)s='0'+s;return s;}
+function logM(tp,id,to,sb){mlog.unshift({ts:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),tp:tp,id:id,to:to||'—',sb:sb});}
+function showToast(m,cls){var e=G('TOAST');e.textContent=m;e.className='toast '+(cls||'');e.style.display='block';setTimeout(function(){e.style.display='none';},3800);}
+function showMbar(m){var e=G('MBAR');e.innerHTML=m;e.style.display='block';window.scrollTo(0,0);}
+function setSPInd(s){
+  var el=G('SP_IND');if(!el)return;
+  if(s==='ok'){el.className='sp-ok';el.textContent='⬤ Teams ✓';}
+  else if(s==='err'){el.className='sp-err';el.textContent='⬤ Teams ✗';}
+  else if(s==='...'){el.className='sp-off';el.textContent='⬤ Teams …';}
+  else{el.className='sp-off';el.textContent='⬤ Teams';}
+}
+function sbadge(s){var m={Open:'s-open','In Progress':'s-prog','On Hold':'s-hold','Pending Closure':'s-pend',Closed:'s-closed'};return'<span class="badge '+(m[s]||'s-open')+'">'+s+'</span>';}
+function pbadge(p){var m={Urgent:'p-urgent',High:'p-high',Medium:'p-medium',Low:'p-low'};return'<span class="badge '+(m[p]||'p-medium')+'">'+p+'</span>';}
+function dbadge(t){if(t.status==='Closed')return'<span class="dok">✓ Closed</span>';var d=diff(t.td);if(d===null)return'<span class="dn">—</span>';if(d<0)return'<span class="do">Overdue '+Math.abs(d)+'d</span>';if(d===0)return'<span class="do">Due today</span>';if(d===1)return'<span class="dw rem-badge">⏰ Tomorrow</span>';return'<span class="dok">'+fmt(t.td)+'</span>';}
+
+// ══ PAGES / TABS ══
+function showPg(id){['PG_PUB','PG_LOGIN','PG_ADM'].forEach(function(v){var e=G(v);if(e)e.style.display='none';});G(id).style.display='block';window.scrollTo(0,0);}
+function goAdmin(){G('L_ERR').style.display='none';G('L_PW').value='';showPg('PG_LOGIN');setTimeout(function(){G('L_PW').focus();},200);}
+function doLogin(){
+  var pw=G('L_PW').value;
+  if(pw===CFG.pass){G('L_ERR').style.display='none';G('L_PW').value='';initAdm();renderAdm();showPg('PG_ADM');loadCfgToPanel();}
+  else{G('L_ERR').style.display='block';}
+}
+function doLogout(){curId=null;showPg('PG_PUB');}
+G('L_PW').onkeydown=function(e){if(e.key==='Enter')doLogin();};
+function goTab(n){
+  ['V1','V2','V3'].forEach(function(v,i){G(v).style.display=(i+1===n)?'block':'none';});
+  [G('T1'),G('T2'),G('T3')].forEach(function(t,i){if(t)t.classList.toggle('on',i===n-1);});
+  if(n===2)renderMy();
+}
+
+// ══ CATEGORIES ══
+function fillSel(id,opts,onch){var el=G(id);if(!el)return;el.innerHTML='';opts.forEach(function(o){var x=document.createElement('option');x.value=o.v!==undefined?o.v:o;x.text=o.t!==undefined?o.t:o;el.appendChild(x);});if(onch)el.onchange=onch;}
+function updSub(){var cat=GV('F_CAT'),sub=G('F_SUB');if(!sub)return;sub.innerHTML='';(CATS[cat]||[]).forEach(function(s){var o=document.createElement('option');o.value=s;o.text=s;sub.appendChild(o);});}
+function epSub(){var cat=GV('EP_CAT'),sub=G('EP_SUB');if(!sub)return;sub.innerHTML='';(CATS[cat]||[]).forEach(function(s){var o=document.createElement('option');o.value=s;o.text=s;sub.appendChild(o);});}
+function initAdm(){
+  fillSel('A_CAT',[{v:'',t:'All Categories'}].concat(CK.map(function(k){return{v:k,t:k};})));
+  fillSel('EP_CAT',CK,function(){epSub();});
+  G('CFG_CNT').value=cnt;
+}
+
+function boot(){
+  var fd=G('F_DT');if(fd&&!fd.textContent)fd.textContent=fmt(today());
+  fillSel('F_CAT',CK,function(){updSub();});
+  if(G('F_CAT')&&G('F_CAT').options.length>0)updSub();
+}
+document.addEventListener('DOMContentLoaded',function(){boot();initTeams();});
+window.addEventListener('load',function(){boot();});
+setTimeout(boot,200);
+
+// ══ ATTACHMENTS (public form) ══
+function pickFiles(files){
+  Array.from(files).forEach(function(f){
+    if(pendingAtts.length>=5){showToast('Max 5 attachments allowed','warn');return;}
+    if(f.size>5242880){showToast(f.name+' is over 5 MB — skipped','warn');return;}
+    var r=new FileReader();
+    r.onload=function(ev){
+      pendingAtts.push({name:f.name,type:f.type,dataURL:ev.target.result});
+      renderAttList('F_ATTLIST',pendingAtts,function(i){pendingAtts.splice(i,1);renderAttList('F_ATTLIST',pendingAtts,arguments.callee);});
+    };
+    r.readAsDataURL(f);
+  });
+  G('F_FILE').value='';
+}
+function dropFiles(ev){ev.preventDefault();G('F_DROPZONE').classList.remove('drag');pickFiles(ev.dataTransfer.files);}
+function renderAttList(elId,list,onRm){
+  var el=G(elId);if(!el)return;
+  if(!list.length){el.innerHTML='';return;}
+  el.innerHTML=list.map(function(a,i){
+    var isImg=a.type.startsWith('image/');
+    var icon=isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄';
+    return'<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="(function(){var fn='+JSON.stringify(onRm.toString())+';})();rmAtt(''+elId+'','+i+')">✕</span></div>';
+  }).join('');
+}
+function rmAtt(elId,idx){
+  if(elId==='F_ATTLIST'){pendingAtts.splice(idx,1);renderAttList('F_ATTLIST',pendingAtts,function(i){pendingAtts.splice(i,1);renderAttList('F_ATTLIST',pendingAtts,arguments.callee);});}
+  else{epAtts.splice(idx,1);renderEpAtts();}
+}
+// EP attachments
+function epPickFiles(files){
+  Array.from(files).forEach(function(f){
+    if((epAtts.length||0)>=5){showToast('Max 5 attachments','warn');return;}
+    if(f.size>5242880){showToast(f.name+' too large','warn');return;}
+    var r=new FileReader();
+    r.onload=function(ev){epAtts.push({name:f.name,type:f.type,dataURL:ev.target.result});renderEpAtts();};
+    r.readAsDataURL(f);
+  });
+  G('EP_FILE').value='';
+}
+function renderEpAtts(){
+  var el=G('EP_ATTLIST');if(!el)return;
+  if(!epAtts.length){el.innerHTML='';return;}
+  el.innerHTML=epAtts.map(function(a,i){
+    var isImg=a.type.startsWith('image/');
+    var icon=isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄';
+    return'<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="rmAtt('EP_ATTLIST','+i+')">✕</span></div>';
+  }).join('');
+}
+function attListHtml(atts){
+  if(!atts||!atts.length)return'';
+  return'<div class="att-list" style="margin-top:6px">'+atts.map(function(a){
+    var isImg=a.type&&a.type.startsWith('image/');
+    return'<div class="att-item">'+(isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄')+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a></div>';
+  }).join('')+'</div>';
+}
+
+// ══ ASSIGNEE CHIPS ══
+function showSug(){
+  var q=(GV('F_AE')||'').toLowerCase();var list=G('SUGLIST');
+  if(!q){list.style.display='none';return;}
+  var f=allPeople().filter(function(a){return(a.name.toLowerCase().indexOf(q)>=0||a.email.toLowerCase().indexOf(q)>=0)&&!selAsgn.some(function(s){return s.email===a.email;});}).slice(0,8);
+  if(!f.length){list.style.display='none';return;}
+  list.innerHTML=f.map(function(a,i){return'<div class="sug-item" onmousedown="pickSugIdx('+i+')"><div class="sug-name">'+a.name+'</div><div class="sug-email">'+a.email+'</div></div>';}).join('');
+  list._items=f;list.style.display='block';
+}
+function hideSug(){setTimeout(function(){var l=G('SUGLIST');if(l)l.style.display='none';},200);}
+function pickSugIdx(i){var list=G('SUGLIST');var a=list._items[i];if(!a)return;G('F_AN').value=a.name;G('F_AE').value=a.email;G('SUGLIST').style.display='none';}
+function addAsgn(){
+  var e=GV('F_AE');if(!e||e.indexOf('@')<0){showToast('Enter a valid assignee email','warn');return;}
+  if(selAsgn.some(function(a){return a.email.toLowerCase()===e.toLowerCase();})){showToast(e+' already added','warn');return;}
+  var n=GV('F_AN')||allPeople().filter(function(s){return s.email.toLowerCase()===e.toLowerCase();})[0]?.name||e.split('@')[0].split('.').map(function(p){return p.charAt(0).toUpperCase()+p.slice(1);}).join(' ');
+  selAsgn.push({name:n,email:e});saveCustom(n,e);renderChips();
+  G('F_AN').value='';G('F_AE').value='';G('SUGLIST').style.display='none';
+}
+function renderChips(){
+  var c=G('CHIPS');if(!c)return;
+  c.innerHTML=selAsgn.map(function(a,i){return'<span class="chip">'+a.name+' &lt;'+a.email+'&gt;<span class="chipx" onclick="remAsgn('+i+')">✕</span></span>';}).join('');
+}
+function remAsgn(i){selAsgn.splice(i,1);renderChips();}
+
+// ══ TEAMS BUTTON HELPER ══
+function teamsBtn(email,name,lines,label){
+  var msg=lines.join('
+');
+  var enc=encodeURIComponent(msg);
+  var url='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(email)+'&message='+enc;
+  var bid='tb_'+Math.random().toString(36).slice(2,8);
+  window._tm=window._tm||{};window._tm[bid]=msg+'
+
+To: '+email;
+  return'<span style="display:inline-flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">'
+    +'<a href="'+url+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 '+label+'</a>'
+    +'<button class="btn b-sm" onclick="cpMsg(''+bid+'')" title="Copy message to clipboard">📋 Copy</button>'
+    +'</span>';
+}
+function cpMsg(bid){
+  var m=window._tm&&window._tm[bid];if(!m)return;
+  try{navigator.clipboard.writeText(m).then(function(){showToast('Copied! Paste in Teams chat','ok');});}
+  catch(e){prompt('Copy this message:',m);}
+}
+
+// ══ TEAMS WEBHOOK — sends card on every ticket action (free, no PA needed) ══
+function callFlowEvent(eventType,payload){
+  if(!payload)payload={};
+  var hasTW=!!CFG.teams_webhook;
+  if(!hasTW){
+    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ Teams webhook not configured. Go to Admin → ⚙ Settings → paste your webhook URL.</span>');
+    return;
+  }
+  var icons={'New Ticket':'🎫','Updated':'✏️','Resolved':'✅','Closed':'🔒','Reminder':'⏰','Test':'🧪'};
+  var ic=icons[eventType]||'📌';
+  var p=payload;
+  var card={
+    '@type':'MessageCard','@context':'https://schema.org/extensions',
+    'themeColor':'6264A7',
+    'summary':ic+' Ticket #'+(p.ticketId||'')+'  — '+eventType,
+    'title':ic+'  Ticket #'+(p.ticketId||'')+' '+eventType,
+    'sections':[{'facts':[
+      {'name':'Subject','value':p.subject||''},
+      {'name':'Category','value':(p.category||'')+(p.subcategory?' — '+p.subcategory:'')},
+      {'name':'Priority','value':p.priority||''},
+      {'name':'Status','value':p.status||''},
+      {'name':'Raised By','value':(p.raisedBy||p.requesterName||'')+(p.requesterEmail?' ('+p.requesterEmail+')':'')},
+      {'name':'Assigned To','value':(p.assigneeName||'')+(p.assigneeEmail?' — '+p.assigneeEmail:'')},
+      {'name':'Target Date','value':p.targetDate||'—'},
+      {'name':'Notes','value':p.resolution||p.changes||p.description||''}
+    ]}]
+  };
+  setSPInd('...');
+  fetch(CFG.teams_webhook,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)})
+  .then(function(){setSPInd('ok');G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-ok">✓ Teams notified</span>');})
+  .catch(function(e){setSPInd('err');console.error('Webhook error:',e);});
+}
+
+// ══ SUBMIT NEW TICKET ══
+function doSubmit(){
+  var sj=GV('F_SJ'),nm=GV('F_NM'),mb=GV('F_MB'),em=GV('F_EM');
+  var pe=GV('F_AE');
+  if(pe&&pe.indexOf('@')>-1&&!selAsgn.some(function(a){return a.email===pe;})){
+    var pn=GV('F_AN')||allPeople().filter(function(s){return s.email.toLowerCase()===pe.toLowerCase();})[0]?.name||pe.split('@')[0].split('.').map(function(p){return p.charAt(0).toUpperCase()+p.slice(1);}).join(' ');
+    selAsgn.push({name:pn,email:pe});saveCustom(pn,pe);renderChips();
+  }
+  if(!sj){showToast('Please enter a Subject','warn');return;}
+  if(!nm){showToast('Please enter your Full Name','warn');return;}
+  if(!mb||mb.length<10){showToast('Please enter a valid 10-digit Mobile','warn');return;}
+  if(!em||em.indexOf('@')<0){showToast('Please enter your Email','warn');return;}
+  if(!selAsgn.length){showToast('Please add at least one Assignee','warn');return;}
+  var fullEM=em.indexOf('@')>-1?em:em+'@blendgroup.in';
+  var fullMB='+91-'+mb;
+  var tdVal=GV('F_TD')||'';
+  var id=nid();
+  var aNames=selAsgn.map(function(a){return a.name;}).join(', ');
+  var aEmails=selAsgn.map(function(a){return a.email;}).join(', ');
+  var attsSnap=pendingAtts.slice();
+  var t={id:id,cat:G('F_CAT').value,sub:G('F_SUB').value,subj:sj,by:nm,mob:fullMB,
+    email:fullEM,prio:G('F_PR').value,status:'Open',
+    assign:aNames,aEmail:aEmails,assignees:selAsgn.slice(),
+    raisedOn:today(),td:tdVal,desc:GV('F_DS'),closedOn:'',
+    atts:attsSnap,source:'new'};
+  tkts.unshift(t);saveStore();
+  logM('New Ticket',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
+
+  // Power Automate / OneDrive Excel
+  var payload={ticketId:id,subject:sj,category:t.cat,subcategory:t.sub,priority:t.prio,status:'Open',
+    raisedBy:nm,raisedOn:t.raisedOn,targetDate:tdVal||'',requesterEmail:fullEM,requesterMobile:fullMB,
+    assigneeName:aNames,assigneeEmail:aEmails,description:t.desc||'',
+    attachmentCount:attsSnap.length,source:'new'};
+  callFlowEvent('New Ticket',payload);
+
+  // Teams notify buttons
+  var notifyBtns=[];
+  selAsgn.forEach(function(a){
+    var lines=['Hi '+a.name+', a new ERP support ticket has been assigned to you.','',
+      '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
+      '🔴 Priority: '+t.prio,'👤 Raised By: '+nm+' ('+fullEM+')','📱 Mobile: '+fullMB,
+      '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'
+🗓 Target Date: '+fmt(tdVal):'')];
+    if(t.desc)lines.push('📝 Description: '+t.desc);
+    lines.push('','Please action at the earliest.','— Blend ERP Support');
+    notifyBtns.push(teamsBtn(a.email,a.name,lines,'Notify '+a.name));
+  });
+  var rLines=['Hi '+nm+', your ERP support ticket has been raised successfully.','',
+    '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
+    '🔴 Priority: '+t.prio,'👤 Assigned To: '+aNames,
+    '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'
+🗓 Target Date: '+fmt(tdVal):''),
+    '','You can track status at any time using your ticket number or email.','— Blend ERP Support'];
+  notifyBtns.push(teamsBtn(fullEM,nm,rLines,'Send Confirmation to '+nm));
+
+  G('S_NUM').textContent=id;
+  G('S_META').innerHTML='<table style="width:100%;font-size:12px;border-collapse:collapse">'
+    +'<tr><td style="padding:4px 8px;color:#605E5C">Category</td><td style="padding:4px 8px;font-weight:700">'+t.cat+' — '+t.sub+'</td>'
+    +'<td style="padding:4px 8px;color:#605E5C">Priority</td><td style="padding:4px 8px;font-weight:700">'+t.prio+'</td></tr>'
+    +'<tr><td style="padding:4px 8px;color:#605E5C">Assigned To</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+aNames+'</td></tr>'
+    +(tdVal?'<tr><td style="padding:4px 8px;color:#605E5C">Target Date</td><td style="padding:4px 8px;font-weight:700;color:#D97706" colspan="3">'+fmt(tdVal)+'</td></tr>':'')
+    +(attsSnap.length?'<tr><td style="padding:4px 8px;color:#605E5C">Attachments</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+attsSnap.map(function(a){return'<a href="'+a.dataURL+'" download="'+a.name+'" style="color:#6264A7;margin-right:8px">📎 '+a.name+'</a>';}).join('')+'</td></tr>':'')
+    +'</table>';
+  G('S_MSG').innerHTML='<div style="font-weight:700;margin-bottom:8px;color:#3730A3">📨 Notify via Teams</div>'
+    +'<div style="font-size:11px;color:#605E5C;margin-bottom:10px">Click 📨 to open Teams chat (pre-filled message). Click 📋 to copy if Teams doesn't open.</div>'
+    +notifyBtns.join('');
+  if(G('S_SP_STATUS')&&!CFG.sp_site)G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ Configure SharePoint in Admin → ⚙ Settings to save tickets to Microsoft 365.</span>';
+
+  pendingAtts=[];G('F_ATTLIST').innerHTML='';
+  selAsgn=[];renderChips();
+  G('FCARD').style.display='none';G('SCARD').style.display='block';window.scrollTo(0,0);
+}
+
+function doReset(){
+  ['F_SJ','F_DS','F_MB','F_AN','F_AE','F_TD'].forEach(function(id){var e=G(id);if(e)e.value='';});
+  pendingAtts=[];if(G('F_ATTLIST'))G('F_ATTLIST').innerHTML='';
+  selAsgn=[];renderChips();G('F_PR').value='Medium';
+  if(!CU.email){var fn=G('F_NM');if(fn)fn.value='';var fe=G('F_EM');if(fe)fe.value='';}
+  G('FCARD').style.display='block';G('SCARD').style.display='none';
+}
+
+// ══ MY TICKETS ══
+function renderMy(){
+  var el=G('MY_LIST');
+  var rawEM=GV('F_EM')||'';
+  var em=CU.email||(rawEM.indexOf('@')>-1?rawEM:(rawEM?rawEM+'@blendgroup.in':''));
+  var mine=em?tkts.filter(function(t){return t.email&&t.email.toLowerCase()===em.toLowerCase();}):[];
+  if(!mine.length){el.innerHTML='<div class="empty">'+(CU.email?'No tickets raised yet by <b>'+CU.name+'</b>.':'Enter your email in the New Ticket form first.')+'<br><br><button class="btn b-blue" onclick="goTab(1)" style="padding:8px 20px">＋ Raise First Ticket</button></div>';return;}
+  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'],html='';
+  mine.forEach(function(t){
+    var ci=SO.indexOf(t.status);var lc=t.prio==='Urgent'?'urg':t.status==='Closed'?'cls':'';
+    html+='<div class="tkt-card '+lc+'">';
+    html+='<table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase;margin-bottom:2px">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' — '+t.sub+'</div></td><td style="text-align:right;vertical-align:top">'+sbadge(t.status)+'<br>'+pbadge(t.prio)+'</td></tr></table>';
+    html+='<table style="width:100%;background:#F8F9FF;border-radius:5px;padding:9px;margin-bottom:10px;font-size:12px"><tr>'
+      +'<td><div style="color:#605E5C;font-size:11px">Raised On</div><div style="font-weight:700">'+fmt(t.raisedOn)+'</div></td>'
+      +'<td><div style="color:#605E5C;font-size:11px">Target</div><div style="font-weight:700;color:'+(t.td?'#D97706':'#AAA')+'">'+fmt(t.td)+'</div></td>'
+      +'<td><div style="color:#605E5C;font-size:11px">Assigned To</div><div style="font-weight:700">'+t.assign+'</div></td>'
+      +'</tr></table>';
+    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';
+      html+='<table style="margin-bottom:3px"><tr><td style="width:26px;vertical-align:top"><div class="dot '+(done?'d-done':act?'d-act':'d-idle')+'">'+(done?'✓':act?'●':'○')+'</div></td><td style="vertical-align:top;padding-left:7px;padding-top:2px"><div style="font-size:12px;font-weight:'+(act?'700':'400')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</div></td></tr></table>';
+      if(si<SO.length-1)html+='<div style="width:2px;height:5px;background:#E1E1E1;margin-left:11px"></div>';
+    });
+    if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
+    if(t.atts&&t.atts.length)html+=attListHtml(t.atts);
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ══ TRACK ══
+function doTrack(){
+  var q=(GV('TRK_Q')||'').toLowerCase().replace(/^0+/,'');
+  var el=G('TRK_RES');if(!q){el.innerHTML='';return;}
+  var found=tkts.filter(function(t){return t.id.replace(/^0+/,'')==q||t.email.toLowerCase()===q||(q.length>2&&t.subj.toLowerCase().indexOf(q)>=0);});
+  if(!found.length){el.innerHTML='<div style="padding:20px;text-align:center;background:#F5F5F5;border-radius:8px;color:#605E5C">No ticket found for <b>'+q+'</b>. Try your email or ticket number.</div>';return;}
+  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'],html='';
+  found.forEach(function(t){
+    var ci=SO.indexOf(t.status);
+    html+='<div class="tkt-card"><table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase;margin-bottom:2px">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' — '+t.sub+'</div></td><td style="text-align:right;vertical-align:top">'+sbadge(t.status)+'<div style="margin-top:4px">'+pbadge(t.prio)+'</div></td></tr></table>';
+    html+='<table style="width:100%;background:#F8F9FF;border-radius:5px;padding:9px;margin-bottom:10px;font-size:12px"><tr><td><div style="color:#605E5C;font-size:11px">Raised On</div><div style="font-weight:700">'+fmt(t.raisedOn)+'</div></td><td><div style="color:#605E5C;font-size:11px">Target</div><div style="font-weight:700;color:#D97706">'+fmt(t.td)+'</div></td><td><div style="color:#605E5C;font-size:11px">Assigned To</div><div style="font-weight:700">'+t.assign+'</div></td></tr></table>';
+    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';
+      html+='<table style="margin-bottom:3px"><tr><td style="width:26px;vertical-align:top"><div class="dot '+(done?'d-done':act?'d-act':'d-idle')+'">'+(done?'✓':act?'●':'○')+'</div></td><td style="vertical-align:top;padding-left:7px;padding-top:2px"><div style="font-size:12px;font-weight:'+(act?'700':'400')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</div></td></tr></table>';
+      if(si<SO.length-1)html+='<div style="width:2px;height:5px;background:#E1E1E1;margin-left:11px"></div>';
+    });
+    if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
+    if(t.atts&&t.atts.length)html+=attListHtml(t.atts);
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ══ ADMIN ══
+function filtered(){
+  var q=(GV('A_Q')||'').toLowerCase(),fc=GV('A_CAT'),fs=GV('A_ST'),fp=GV('A_PR'),fsr=GV('A_SRC');
+  return tkts.filter(function(t){
+    var matchQ=!q||(t.id+t.subj+(t.by||'')+(t.email||'')+t.cat+(t.assign||'')).toLowerCase().indexOf(q)>=0;
+    var matchC=!fc||t.cat===fc;
+    var matchS=!fs||t.status===fs;
+    var matchP=!fp||t.prio===fp;
+    var matchSrc=!fsr||(fsr==='imported'?t.source==='imported':t.source!=='imported');
+    return matchQ&&matchC&&matchS&&matchP&&matchSrc;
+  });
+}
+function renderAdm(){
+  var list=filtered();
+  var urg=tkts.filter(function(t){return t.prio==='Urgent'&&t.status!=='Closed';}).length;
+  var ub=G('URG_B');ub.textContent='🔴 '+urg+' Urgent';ub.style.display=urg?'inline':'none';
+  var c={Open:0,'In Progress':0,'On Hold':0,'Pending Closure':0,Closed:0,Overdue:0};
+  tkts.forEach(function(t){if(c[t.status]!==undefined)c[t.status]++;var d=diff(t.td);if(t.status!=='Closed'&&d!==null&&d<0)c.Overdue++;});
+  G('SUM_DIV').innerHTML='<div class="sumbar">'
+    +'<div class="sc"><div class="scv" style="color:#3730A3">'+c.Open+'</div><div class="scl">Open</div></div>'
+    +'<div class="sc"><div class="scv" style="color:#713F12">'+c['In Progress']+'</div><div class="scl">In Progress</div></div>'
+    +'<div class="sc"><div class="scv" style="color:#374151">'+c['On Hold']+'</div><div class="scl">On Hold</div></div>'
+    +'<div class="sc"><div class="scv" style="color:#6B21A8">'+c['Pending Closure']+'</div><div class="scl">Pending</div></div>'
+    +'<div class="sc"><div class="scv" style="color:#237B4B">'+c.Closed+'</div><div class="scl">Closed</div></div>'
+    +'<div class="sc"><div class="scv" style="color:#C4314B">'+c.Overdue+'</div><div class="scl">Overdue</div></div>'
+    +'</div>';
+  var ov=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)!==null&&diff(t.td)<0;});
+  var pend=tkts.filter(function(t){return t.status==='Pending Closure';});
+  var tmr=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)===1;});
+  var ah='';
+  if(ov.length)ah+='<div class="al al-w">⚠ <b>'+ov.length+' overdue:</b> '+ov.map(function(t){return'<b>#'+t.id+'</b>';}).join(', ')+'</div>';
+  if(tmr.length)ah+='<div class="al" style="background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412">⏰ <b>Due Tomorrow:</b> '+tmr.map(function(t){return'#'+t.id+' ('+t.assign+')';}).join(', ')+'</div>';
+  if(pend.length)ah+='<div class="al al-p">🔒 <b>Awaiting closure:</b> '+pend.map(function(t){return'#'+t.id+' ('+t.by+')';}).join(', ')+'</div>';
+  G('ALT_DIV').innerHTML=ah;
+  var tbody=G('ADM_BODY');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="10" class="empty">No tickets match the current filter.</td></tr>';return;}
+  var html='';
+  list.forEach(function(t){
+    var d=diff(t.td),bg='';
+    if(curId===t.id)bg='background:#EEF2FF;';
+    else if(t.status!=='Closed'&&d!==null&&d<0)bg='background:#FEF2F2;';
+    else if(t.status!=='Closed'&&d===1)bg='background:#FFFBEB;';
+    var srcTag=t.source==='imported'?'<span style="font-size:9px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:2px;padding:1px 4px;font-weight:700;display:inline-block;margin-top:2px;line-height:1.4">LEGACY</span>':'';
+    var attIcon=t.atts&&t.atts.length?'<span title="'+t.atts.length+' attachment(s)">📎'+t.atts.length+'</span>':'<span style="color:#ccc">—</span>';
+    var remBadge=(t.status!=='Closed'&&d===1)?'<span class="rem-badge">⏰ tmr</span>':'';
+    html+='<tr style="'+bg+'">'
+      +'<td><span class="tid">'+t.id+'</span><br>'+srcTag+'</td>'
+      +'<td><span class="cpill">'+t.cat+'</span><div style="font-size:10px;color:#888;margin-top:2px">'+t.sub+'</div></td>'
+      +'<td><div style="font-weight:600;font-size:12px;max-width:200px">'+t.subj+'</div></td>'
+      +'<td><div style="font-weight:600;font-size:12px">'+t.by+'</div><div style="font-size:10px;color:#888">'+t.mob+'</div></td>'
+      +'<td>'+pbadge(t.prio)+'</td>'
+      +'<td>'+sbadge(t.status)+'</td>'
+      +'<td><div style="font-weight:600;font-size:11px;max-width:140px">'+t.assign+'</div></td>'
+      +'<td>'+dbadge(t)+remBadge+'<div style="font-size:10px;color:#AAA">'+fmt(t.raisedOn)+'</div></td>'
+      +'<td>'+attIcon+'</td>'
+      +'<td><button class="btn b-blue b-xs" data-tid="'+t.id+'" onclick="openEP(this.dataset.tid)">'+(t.status==='Closed'?'View':'Edit')+'</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+// ══ EDIT PANEL ══
+function openEP(id){
+  var t=tkts.filter(function(x){return x.id===id;})[0];if(!t)return;curId=id;
+  var ic=t.status==='Closed',ip=t.status==='Pending Closure';
+  G('EP_NUM').textContent='#'+id;G('EP_ID').textContent=id;G('EP_RO').textContent=fmt(t.raisedOn);
+  G('EP_TD').value=t.td||'';G('EP_AS').value=t.assign;G('EP_AE').value=t.aEmail||'';
+  G('EP_MB').value=t.mob;G('EP_BY').value=t.by;G('EP_EM').value=t.email||'';
+  G('EP_SJ').value=t.subj;G('EP_DS').value=t.desc||'';
+  if(G('EP_CAT').options.length===0){CK.forEach(function(k){var o=document.createElement('option');o.value=k;o.text=k;G('EP_CAT').appendChild(o);});}
+  G('EP_CAT').value=t.cat;epSub();setTimeout(function(){G('EP_SUB').value=t.sub;},80);
+  G('EP_PR').value=t.prio;G('EP_ST').value=t.status;
+  [G('EP_TD'),G('EP_AS'),G('EP_AE'),G('EP_MB'),G('EP_BY'),G('EP_EM'),G('EP_SJ'),G('EP_DS'),G('EP_CAT'),G('EP_PR'),G('EP_ST')].forEach(function(e){if(e)e.disabled=ic;});
+  // Attachments
+  epAtts=(t.atts||[]).slice();renderEpAtts();
+  G('EP_FILE').disabled=ic;G('EP_FILE').closest('.att-zone').style.display=ic?'none':'';
+  G('BTN_DEL').style.display=ic?'none':'inline-flex';
+  G('BTN_SAV').style.display=ic?'none':'inline-flex';
+  G('BTN_PND').style.display=(ic||ip)?'none':'inline-flex';
+  G('BTN_CC').style.display=ip?'inline-flex':'none';
+  var ep=G('EP_DIV');ep.style.display='block';
+  setTimeout(function(){ep.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  renderAdm();
+}
+function closeEP(){curId=null;G('EP_DIV').style.display='none';G('CC_WRAP').style.display='none';epAtts=[];renderAdm();}
+
+function saveTkt(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  var prev={status:t.status,assign:t.assign,td:t.td};
+  t.cat=GV('EP_CAT');t.sub=GV('EP_SUB');t.prio=GV('EP_PR');t.status=GV('EP_ST');
+  t.td=GV('EP_TD');t.assign=GV('EP_AS');t.aEmail=GV('EP_AE');
+  t.by=GV('EP_BY');t.mob=GV('EP_MB');t.email=GV('EP_EM');
+  t.subj=GV('EP_SJ');t.desc=GV('EP_DS');
+  if(epAtts.length)t.atts=epAtts.slice();
+  var chg=[];
+  if(prev.status!==t.status)chg.push('Status → '+t.status);
+  if(prev.assign!==t.assign)chg.push('Assigned → '+t.assign);
+  if(prev.td!==t.td)chg.push('Target → '+fmt(t.td));
+  var chgT=chg.length?chg.join(', '):'Details updated';
+  saveStore();
+  logM('Updated',curId,t.aEmail,'#'+curId+' — '+chgT);
+  callFlowEvent('Updated',{ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
+    category:t.cat,subcategory:t.sub,assigneeName:t.assign,assigneeEmail:t.aEmail||'',
+    targetDate:t.td||'',requesterName:t.by,requesterEmail:t.email||'',mobile:t.mob||'',description:t.desc||''});
+  var btns='';
+  if(t.aEmail){
+    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
+    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' has been updated.',
+      'Change: '+chgT,'Subject: '+t.subj,t.td?'Target Date: '+fmt(t.td):'',
+      '— Blend ERP Support'],'Notify '+fn+' (Assignee)')+' ';
+  }
+  if(t.email){
+    btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', your Ticket #'+curId+' has been updated.',
+      'Change: '+chgT,t.td?'Target Date: '+fmt(t.td):'','Assigned To: '+t.assign,
+      '— Blend ERP Support'],'Notify '+t.by+' (Requester)');
+  }
+  showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
+  showToast('Ticket #'+curId+' saved','ok');renderAdm();
+}
+
+function markPend(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  t.desc=GV('EP_DS');t.status='Pending Closure';saveStore();
+  logM('Resolved',curId,t.email,'#'+curId+' resolved');
+  callFlowEvent('Resolved',{ticketId:curId,subject:t.subj,status:'Pending Closure',
+    assigneeName:t.assign,assigneeEmail:t.aEmail||'',requesterName:t.by,requesterEmail:t.email||'',
+    category:t.cat,subcategory:t.sub,priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',
+    raisedOn:t.raisedOn,description:t.desc||''});
+  var btns='';
+  if(t.email)btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', Ticket #'+curId+' ('+t.subj+') has been resolved by '+t.assign+'.',
+    'Please confirm you are satisfied so we can close the ticket.','— Blend ERP Support'],'Notify '+t.by+' (Requester)')+' ';
+  if(t.aEmail){
+    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
+    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' is marked Resolved. Awaiting requester confirmation to close.','— Blend ERP Support'],'Notify '+fn+' (Assignee)');
+  }
+  showMbar('💬 Marked resolved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
+  showToast('Marked resolved','ok');closeEP();
+}
+
+function openCC(){G('CC_WRAP').style.display='block';G('CC_EM').value='';G('CC_REM').value='';G('CC_WRAP').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function cancelCC(){G('CC_WRAP').style.display='none';}
+function confirmCC(){
+  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
+  var em=G('CC_EM').value.trim();
+  if(!em){showToast('Enter requester email','warn');return;}
+  if(t.email&&em.toLowerCase()!==t.email.toLowerCase()){showToast('Email does not match requester on record','warn');return;}
+  var rem=G('CC_REM').value.trim();
+  t.status='Closed';t.closedOn=today();if(rem)t.desc=(t.desc||'')+' | Resolution: '+rem;
+  saveStore();logM('Closed',curId,t.email,'#'+curId+' closed');
+  callFlowEvent('Closed',{ticketId:curId,subject:t.subj,status:'Closed',closedOn:today(),
+    resolution:rem||'Issue resolved',assigneeName:t.assign,assigneeEmail:t.aEmail||'',
+    requesterName:t.by,requesterEmail:t.email||'',category:t.cat,subcategory:t.sub,
+    priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',raisedOn:t.raisedOn,description:t.desc||''});
+  var btns='';
+  if(t.email)btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', your Ticket #'+curId+' is now ✅ CLOSED.',
+    'Resolution: '+(rem||'Issue resolved'),'Thank you for using Blend ERP Support.','— Blend ERP Support'],'Notify '+t.by+' (Requester)')+' ';
+  if(t.aEmail){
+    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
+    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' has been closed by the requester. No further action needed.','— Blend ERP Support'],'Notify '+fn+' (Assignee)');
+  }
+  showMbar('💬 Ticket closed. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
+  G('CC_WRAP').style.display='none';closeEP();showToast('Ticket #'+curId+' closed','ok');
+}
+
+function delTkt(){
+  if(!curId)return;
+  if(!confirm('Delete ticket #'+curId+'? This cannot be undone.'))return;
+  tkts=tkts.filter(function(x){return x.id!==curId;});saveStore();closeEP();showToast('Deleted','warn');
+}
+
+// ══ REMINDERS (check due-tomorrow tickets, generate Teams notify buttons) ══
+function checkReminders(){
+  var due=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)===1;});
+  if(!due.length){showToast('No tickets due tomorrow — all good!','ok');return;}
+  var html='<div style="font-weight:700;margin-bottom:10px;color:#92400E">⏰ Due Tomorrow — Send Reminders ('+due.length+')</div>';
+  due.forEach(function(t){
+    html+='<div style="border:1px solid #FDE68A;border-radius:5px;padding:10px;margin-bottom:8px;background:#FFFBEB">';
+    html+='<div style="font-weight:700;font-size:13px;color:#252424">#'+t.id+' — '+t.subj+'</div>';
+    html+='<div style="font-size:11px;color:#605E5C;margin:4px 0">Assigned: '+t.assign+' | Target: '+fmt(t.td)+'</div>';
+    if(t.aEmail){
+      var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
+      html+=teamsBtn(fe,fn,
+        ['⏰ Reminder: Ticket #'+t.id+' is due TOMORROW ('+fmt(t.td)+').',
+         'Subject: '+t.subj,
+         'Please ensure it is resolved or update the target date.',
+         '— Blend ERP Support'],
+        'Remind '+fn);
+    }
+    if(CFG.sp_site||CFG.teams_webhook){
+      html+=' <button class="btn b-sm" onclick="sendAutoReminder(\''+t.id+'\')">🤖 Auto-send</button>';
+    }
+    html+='</div>';
+  });
+  showMbar(html);window.scrollTo(0,0);
+  // Also trigger Power Automate reminder flow for each
+  if(CFG.sp_site||CFG.teams_webhook){
+    due.forEach(function(t){
+      callFlowEvent('Reminder',{ticketId:t.id,subject:t.subj,assigneeName:t.assign,
+        assigneeEmail:t.aEmail||'',targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
+    });
+  }
+}
+function sendAutoReminder(id){
+  var t=tkts.filter(function(x){return x.id===id;})[0];if(!t)return;
+  callFlowEvent('Reminder',{ticketId:t.id,subject:t.subj,assigneeName:t.assign,
+    assigneeEmail:t.aEmail||'',targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
+  showToast('Reminder sent for #'+t.id,'ok');
+}
+
+// ══ NOTIFICATION LOG ══
+function toggleML(){
+  var v=G('ML_WRAP'),show=v.style.display==='none'||!v.style.display;
+  if(show&&mlog.length){G('ML_INNER').innerHTML=mlog.map(function(m){
+    return'<div style="padding:8px 0;border-bottom:1px solid #F0F0F0;display:flex;gap:8px">'
+      +'<div style="width:26px;height:26px;border-radius:50%;background:#EEF2FF;text-align:center;line-height:26px;font-size:13px;flex-shrink:0">💬</div>'
+      +'<div><span style="font-weight:700;font-size:12px;color:#6264A7">'+m.tp+'</span> <span style="font-size:11px;color:#AAA">#'+m.id+' · '+m.ts+'</span>'
+      +'<div style="font-size:12px;color:#252424">To: <b>'+m.to+'</b></div>'
+      +'<div style="font-size:11px;color:#605E5C">'+m.sb+'</div></div></div>';
+  }).join('');}
+  else if(show)G('ML_INNER').innerHTML='<div class="empty">No notifications yet.</div>';
+  v.style.display=show?'block':'none';
+}
+
+// ══ SETTINGS ══
+function openCfg(){G('CFG_WRAP').style.display='block';loadCfgToPanel();window.scrollTo(0,0);}
+function closeCfg(){G('CFG_WRAP').style.display='none';}
+function loadCfgToPanel(){
+  G('CFG_PW').value='';G('CFG_CNT').value=cnt;
+  G('CFG_TW').value=CFG.teams_webhook||'';
+}
+function changePw(){var p=GV('CFG_PW');if(!p||p.length<4){showToast('Password must be at least 4 characters','warn');return;}CFG.pass=p;persistCfg();G('CFG_PW').value='';showToast('Password updated','ok');}
+function saveCnt(){var v=parseInt(GV('CFG_CNT'));if(isNaN(v)||v<1){showToast('Invalid number','warn');return;}cnt=v;saveStore();showToast('Counter set to '+v,'ok');}
+function saveCfg(){
+  CFG.teams_webhook=GV('CFG_TW')||'';
+  persistCfg();showToast('Settings saved','ok');closeCfg();
+}
+function testFlow(){
+  if(!CFG.sp_site||!CFG.sp_token){showToast('Enter SharePoint Site URL and Bearer Token first','warn');return;}
+  var testPayload={ticketId:'TEST-001',subject:'Test from Blend ERP',category:'IT',subcategory:'Software Bug',
+    priority:'Medium',status:'Open',raisedBy:'Test User',raisedOn:today(),targetDate:'',
+    requesterEmail:'test@blendgroup.in',requesterMobile:'+91-9999999999',
+    assigneeName:'Pavan Thakur',assigneeEmail:'pavan.thakur@blendgroup.in',
+    description:'Test payload — verifying SharePoint connection.',source:'test'};
+  showMbar('<b>Testing SharePoint connection…</b><br><pre style="font-size:10px;background:#1E1E2E;color:#E2E8F0;padding:10px;border-radius:5px;overflow-x:auto;margin-top:8px">'+JSON.stringify(testPayload,null,2)+'</pre><div style="margin-top:8px;font-size:12px;color:#605E5C">Check SharePoint list BlendERP_Tickets for a new item titled TEST-001.</div>');
+  callFlowEvent('Test',testPayload);
+  showToast('Test sent — check SharePoint list for TEST-001 item','ok');
+}
+
+// ══ EXCEL EXPORT ══
+function doExport(){
+  function build(){
+    var X=window.XLSX;
+    var rows=[['No.','Source','Category','Sub-category','Subject','Raised By','Mobile','Email','Priority','Status','Assigned To','Assignee Email','Raised On','Target Date','Closed On','Description','Attachments']];
+    filtered().forEach(function(t){
+      rows.push([t.id,t.source==='imported'?'Legacy':'New',t.cat,t.sub,t.subj,t.by,t.mob,t.email||'',t.prio,t.status,t.assign,t.aEmail||'',fmt(t.raisedOn),fmt(t.td||''),fmt(t.closedOn||''),t.desc||'',(t.atts||[]).map(function(a){return a.name;}).join('; ')]);
+    });
+    var ws=X.utils.aoa_to_sheet(rows);
+    var cols=rows[0].map(function(_,ci){return{wch:Math.min(50,Math.max(10,Math.max.apply(null,rows.map(function(r){return((r[ci]||'')+'').length;}))))};});
+    ws['!cols']=cols;
+    var wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,'Tickets');
+    X.writeFile(wb,'BlendERP_Tickets_'+today()+'.xlsx');
+    showToast('Excel downloaded','ok');
+  }
+  if(window.XLSX)build();
+  else{var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=build;s.onerror=function(){showToast('Could not load Excel library','warn');};document.head.appendChild(s);}
+}
+</script>
+</body>
+</html>
