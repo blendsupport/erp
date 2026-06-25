@@ -142,17 +142,20 @@ textarea.inp{height:70px;resize:vertical}
 <div id="MBAR" class="mbar"></div>
 
 <!-- ══════════ PUBLIC PORTAL ══════════ -->
-<!-- ══ ACCESS GATE ══ -->
+<!-- ══ MICROSOFT LOGIN GATE ══ -->
 <div id="PG_GATE" class="pg on" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f2f5">
-  <div style="background:#fff;border:1px solid #E1E1E1;border-radius:12px;padding:36px;width:360px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)">
-    <div style="width:56px;height:56px;background:#6264A7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;margin:0 auto 16px">BL</div>
-    <div style="font-size:20px;font-weight:700;color:#252424;margin-bottom:6px">Blend ERP Support</div>
-    <div style="font-size:13px;color:#605E5C;margin-bottom:24px">Enter your company access code to continue</div>
-    <div id="GATE_ERR" style="display:none;background:#FEE2E2;color:#7F1D1D;border-radius:5px;padding:8px 12px;font-size:12px;margin-bottom:12px">❌ Incorrect access code. Please try again.</div>
-    <label style="font-size:10px;font-weight:700;color:#605E5C;display:block;text-align:left;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Access Code</label>
-    <input id="GATE_CODE" type="password" placeholder="Enter company access code" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;font-family:inherit;margin-bottom:12px;text-align:center;letter-spacing:3px">
-    <button onclick="checkGate()" style="width:100%;padding:11px;background:#6264A7;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Enter Portal →</button>
-    <div style="margin-top:16px;font-size:11px;color:#AAA">Blend Group Internal Use Only</div>
+  <div style="background:#fff;border:1px solid #E1E1E1;border-radius:12px;padding:40px 36px;width:380px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.10)">
+    <div style="width:60px;height:60px;background:#6264A7;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;margin:0 auto 18px">BL</div>
+    <div style="font-size:22px;font-weight:700;color:#252424;margin-bottom:6px">Blend ERP Support</div>
+    <div style="font-size:13px;color:#605E5C;margin-bottom:8px">Internal support ticket portal</div>
+    <div style="font-size:12px;color:#AAA;margin-bottom:28px">Only @blendgroup.in accounts can access</div>
+    <div id="GATE_ERR" style="display:none;background:#FEE2E2;color:#7F1D1D;border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:16px;line-height:1.5"></div>
+    <div id="GATE_LOADING" style="display:none;color:#6264A7;font-size:13px;margin-bottom:16px">&#9203; Signing you in...</div>
+    <button onclick="msLogin()" id="BTN_MS_LOGIN" style="width:100%;padding:12px;background:#fff;color:#252424;border:1.5px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
+      <svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div style="margin-top:20px;font-size:11px;color:#C0C0C0">Blend Group Internal Use Only</div>
   </div>
 </div>
 
