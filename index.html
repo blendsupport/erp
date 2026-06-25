@@ -119,6 +119,15 @@ textarea.inp{height:70px;resize:vertical}
 .cfg-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F0}
 .cfg-lbl{flex:1;font-size:12px;color:#252424;font-weight:600}
 .cfg-hint{font-size:11px;color:#888;font-weight:400;display:block}
+/* COMMENTS */
+.cmt-box{background:var(--color-background-secondary,#F8F9FF);border:1px solid #E1E1E1;border-radius:8px;padding:14px;margin-top:10px}
+.cmt-item{padding:8px 0;border-bottom:1px solid #F0F0F0;font-size:12px}
+.cmt-item:last-child{border-bottom:none}
+.cmt-who{font-weight:700;color:#6264A7;font-size:11px}
+.cmt-time{color:#AAA;font-size:10px;margin-left:6px}
+.cmt-text{color:#252424;margin-top:3px;line-height:1.5}
+.cmt-input{display:flex;gap:8px;margin-top:10px}
+.cmt-input textarea{flex:1;padding:8px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;font-family:inherit;resize:none;height:60px}
 /* REMINDER badge */
 .rem-badge{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:3px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;text-transform:uppercase}
 /* SP status */
@@ -444,6 +453,7 @@ textarea.inp{height:70px;resize:vertical}
       <button class="btn b-sm b-amber" onclick="markPend()" id="BTN_PND">✅ Mark Resolved</button>
       <button class="btn b-green b-sm" onclick="openCC()" id="BTN_CC" style="display:none">🔒 Confirm Closure</button>
     </div>
+    <div id="EP_CMTS" style="margin-top:8px"></div>
   </div>
   <!-- SEARCH / FILTER -->
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
@@ -880,7 +890,7 @@ function doSubmit(){
     email:fullEM,prio:G('F_PR').value,status:'Open',
     assign:aNames,aEmail:aEmails,assignees:selAsgn.slice(),
     raisedOn:today(),td:tdVal,desc:GV('F_DS'),closedOn:'',
-    atts:attsSnap,source:'new'};
+    atts:attsSnap,source:'new',comments:[]};
   tkts.unshift(t);saveStore();
   logM('New Ticket',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
 
@@ -927,6 +937,53 @@ function doSubmit(){
   pendingAtts=[];G('F_ATTLIST').innerHTML='';
   selAsgn=[];renderChips();
   G('FCARD').style.display='none';G('SCARD').style.display='block';window.scrollTo(0,0);
+}
+
+// ══ COMMENTS ══
+function addComment(ticketId, author, text){
+  if(!text||!text.trim())return;
+  var t=tkts.filter(function(x){return x.id===ticketId;})[0];
+  if(!t)return;
+  if(!t.comments)t.comments=[];
+  t.comments.push({who:author,text:text.trim(),ts:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})});
+  saveStore();
+}
+function renderComments(ticketId, containerEl, isAdmin){
+  var t=tkts.filter(function(x){return x.id===ticketId;})[0];
+  if(!t)return;
+  var cmts=t.comments||[];
+  var role=isAdmin?'Admin':'Assignee';
+  var h='<div class="cmt-box">';
+  h+='<div style="font-size:11px;font-weight:700;color:#6264A7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#128172; Comments ('+cmts.length+')</div>';
+  if(cmts.length){
+    cmts.forEach(function(c){
+      h+='<div class="cmt-item"><span class="cmt-who">'+c.who+'</span><span class="cmt-time"> '+c.ts+'</span><div class="cmt-text">'+c.text+'</div></div>';
+    });
+  } else {
+    h+='<div style="font-size:12px;color:#AAA;padding:6px 0">No comments yet.</div>';
+  }
+  h+='<div class="cmt-input">';
+  if(isAdmin){
+    // Admin: no Post button — comment saved via Save & Notify
+    h+='<textarea id="CMT_'+ticketId+'" placeholder="Add a comment (saved when you click Save &amp; Notify below)..."></textarea>';
+    h+='<span style="font-size:10px;color:#6264A7;align-self:center;white-space:nowrap">&#8593; Save &amp; Notify</span>';
+  } else {
+    // Assignee on Track page: needs Post button
+    h+='<textarea id="CMT_'+ticketId+'" placeholder="Add a comment or update..."></textarea>';
+    h+='<button class="btn b-blue b-sm" data-tid="'+ticketId+'" data-role="'+role+'" onclick="submitComment(this.dataset.tid,this.dataset.role,this)">Post</button>';
+  }
+  h+='</div></div>';
+  containerEl.innerHTML=h;
+}
+function submitComment(ticketId, role, btn){
+  var ta=G('CMT_'+ticketId);
+  if(!ta||!ta.value.trim()){showToast('Please type a comment first','warn');return;}
+  addComment(ticketId, role, ta.value);
+  ta.value='';
+  var container=btn.closest('.cmt-box').parentElement;
+  renderComments(ticketId, container, role==='Admin');
+  showToast('Comment added','ok');
+  logM('Comment',ticketId,role,'Comment added to #'+ticketId);
 }
 
 function doReset(){
@@ -982,9 +1039,11 @@ function doTrack(){
     });
     if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
     if(t.atts&&t.atts.length)html+=attListHtml(t.atts);
+    html+='<div id="CMTS_TRK_'+t.id+'"></div>';
     html+='</div>';
   });
   el.innerHTML=html;
+  found.forEach(function(t){var ce=G('CMTS_TRK_'+t.id);if(ce)renderComments(t.id,ce,false);});
 }
 
 // ══ ADMIN ══
@@ -1068,7 +1127,10 @@ function openEP(id){
   G('BTN_PND').style.display=(ic||ip)?'none':'inline-flex';
   G('BTN_CC').style.display=ip?'inline-flex':'none';
   var ep=G('EP_DIV');ep.style.display='block';
-  setTimeout(function(){ep.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  setTimeout(function(){
+    ep.scrollIntoView({behavior:'smooth',block:'nearest'});
+    var ce=G('EP_CMTS');if(ce)renderComments(id,ce,true);
+  },100);
   renderAdm();
 }
 function closeEP(){curId=null;G('EP_DIV').style.display='none';G('CC_WRAP').style.display='none';epAtts=[];renderAdm();}
@@ -1081,10 +1143,18 @@ function saveTkt(){
   t.by=GV('EP_BY');t.mob=GV('EP_MB');t.email=GV('EP_EM');
   t.subj=GV('EP_SJ');t.desc=GV('EP_DS');
   if(epAtts.length)t.atts=epAtts.slice();
+  // Save admin comment if typed
+  var cmtEl=G('CMT_'+curId);
+  var newCmt=cmtEl?cmtEl.value.trim():'';
+  if(newCmt){
+    if(!t.comments)t.comments=[];
+    t.comments.push({who:'Admin',text:newCmt,ts:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})});
+  }
   var chg=[];
   if(prev.status!==t.status)chg.push('Status → '+t.status);
   if(prev.assign!==t.assign)chg.push('Assigned → '+t.assign);
   if(prev.td!==t.td)chg.push('Target → '+fmt(t.td));
+  if(newCmt)chg.push('Comment added');
   var chgT=chg.length?chg.join(', '):'Details updated';
   saveStore();
   logM('Updated',curId,t.aEmail,'#'+curId+' — '+chgT);
@@ -1094,17 +1164,23 @@ function saveTkt(){
   var btns='';
   if(t.aEmail){
     var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
-    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' has been updated.',
-      'Change: '+chgT,'Subject: '+t.subj,t.td?'Target Date: '+fmt(t.td):'',
-      '— Blend ERP Support'],'Notify '+fn+' (Assignee)')+' ';
+    var aLines=['Hi '+fn+', Ticket #'+curId+' has been updated.','Change: '+chgT,'Subject: '+t.subj];
+    if(t.td)aLines.push('Target Date: '+fmt(t.td));
+    if(newCmt)aLines.push('Admin comment: '+newCmt);
+    aLines.push('— Blend ERP Support');
+    btns+=teamsBtn(fe,fn,aLines,'Notify '+fn+' (Assignee)')+' ';
   }
   if(t.email){
-    btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', your Ticket #'+curId+' has been updated.',
-      'Change: '+chgT,t.td?'Target Date: '+fmt(t.td):'','Assigned To: '+t.assign,
-      '— Blend ERP Support'],'Notify '+t.by+' (Requester)');
+    var rLines=['Hi '+t.by+', your Ticket #'+curId+' has been updated.','Change: '+chgT];
+    if(t.td)rLines.push('Target Date: '+fmt(t.td));
+    if(newCmt)rLines.push('Admin comment: '+newCmt);
+    rLines.push('Assigned To: '+t.assign,'— Blend ERP Support');
+    btns+=teamsBtn(t.email,t.by,rLines,'Notify '+t.by+' (Requester)');
   }
   showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
-  showToast('Ticket #'+curId+' saved','ok');renderAdm();
+  showToast('Ticket #'+curId+' saved','ok');
+  var ce=G('EP_CMTS');if(ce)renderComments(curId,ce,true);
+  renderAdm();
 }
 
 function markPend(){
