@@ -142,7 +142,21 @@ textarea.inp{height:70px;resize:vertical}
 <div id="MBAR" class="mbar"></div>
 
 <!-- ══════════ PUBLIC PORTAL ══════════ -->
-<div id="PG_PUB" class="pg on">
+<!-- ══ ACCESS GATE ══ -->
+<div id="PG_GATE" class="pg on" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f2f5">
+  <div style="background:#fff;border:1px solid #E1E1E1;border-radius:12px;padding:36px;width:360px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)">
+    <div style="width:56px;height:56px;background:#6264A7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;margin:0 auto 16px">BL</div>
+    <div style="font-size:20px;font-weight:700;color:#252424;margin-bottom:6px">Blend ERP Support</div>
+    <div style="font-size:13px;color:#605E5C;margin-bottom:24px">Enter your company access code to continue</div>
+    <div id="GATE_ERR" style="display:none;background:#FEE2E2;color:#7F1D1D;border-radius:5px;padding:8px 12px;font-size:12px;margin-bottom:12px">❌ Incorrect access code. Please try again.</div>
+    <label style="font-size:10px;font-weight:700;color:#605E5C;display:block;text-align:left;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Access Code</label>
+    <input id="GATE_CODE" type="password" placeholder="Enter company access code" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;font-family:inherit;margin-bottom:12px;text-align:center;letter-spacing:3px">
+    <button onclick="checkGate()" style="width:100%;padding:11px;background:#6264A7;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Enter Portal →</button>
+    <div style="margin-top:16px;font-size:11px;color:#AAA">Blend Group Internal Use Only</div>
+  </div>
+</div>
+
+<div id="PG_PUB" class="pg" style="display:none">
 <div class="nav">
   <div style="display:flex;align-items:center;gap:9px">
     <div class="nlogo">BL</div>
@@ -308,6 +322,7 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">⬇ Excel</button>
+    <button class="btn b-sm" onclick="syncToExcel()" style="background:#0078D4;color:#fff;border-color:#0078D4;font-size:10px">🔄 Sync to Excel</button>
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
@@ -333,13 +348,47 @@ textarea.inp{height:70px;resize:vertical}
       <button class="btn b-sm b-blue" onclick="changePw()">Save</button>
     </div>
     <div class="cfg-row">
+      <div class="cfg-lbl">Allowed Domain <span class="cfg-hint">Only email addresses from this domain can access the portal. Default: blendgroup.in</span></div>
+      <input class="inp" id="CFG_DOMAIN" type="text" placeholder="blendgroup.in" style="width:220px">
+      <button class="btn b-sm b-blue" onclick="changeDomain()">Save</button>
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">Azure AD Client ID <span class="cfg-hint">Optional — leave blank to use default. Get from portal.azure.com → App registrations</span></div>
+      <input class="inp" id="CFG_MSID" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:320px">
+      <button class="btn b-sm b-blue" onclick="saveMsId()">Save</button>
+    </div>
+    <div class="cfg-row">
       <div class="cfg-lbl">Ticket Series Start Number <span class="cfg-hint">Current next ticket ID. Increase to skip ahead.</span></div>
       <input class="inp" id="CFG_CNT" type="number" min="1" style="width:100px">
       <button class="btn b-sm b-blue" onclick="saveCnt()">Save</button>
     </div>
+    <div class="sec">SharePoint Integration (Auto-save all tickets — Free)</div>
+    <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:10px 14px;font-size:12px;color:#3730A3;margin-bottom:12px">
+      ℹ The app writes every ticket directly to your SharePoint list. Power Automate Standard (free) then auto-copies to OneDrive Excel. No Premium licence needed.
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">SharePoint Site URL <span class="cfg-hint">e.g. https://blendgroupin.sharepoint.com/sites/BlendERP2</span></div>
+      <input class="inp" id="CFG_SP_SITE" type="url" placeholder="https://blendgroupin.sharepoint.com/sites/BlendERP2" style="max-width:500px">
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">SharePoint List Name <span class="cfg-hint">Must match exactly — default: BlendERP_Tickets</span></div>
+      <input class="inp" id="CFG_SP_LIST" placeholder="BlendERP_Tickets" style="width:220px">
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">Bearer Token <span class="cfg-hint">From Azure AD app registration — see guide below. Expires every hour — paste fresh token daily.</span></div>
+      <input class="inp" id="CFG_SP_TOKEN" type="password" placeholder="eyJ0eXAiOiJKV1Qi…" autocomplete="off">
+    </div>
+    <div class="sec">OneDrive Excel Sync (One-click sync — Free)</div>
+    <div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:6px;padding:10px 14px;font-size:12px;color:#27500A;margin-bottom:12px">
+      ✓ Click 🔄 Sync to Excel in the admin nav to push all tickets to your OneDrive Excel file instantly. You will be asked to sign in to Microsoft once per session.
+    </div>
+    <div class="cfg-row">
+      <div class="cfg-lbl">OneDrive Excel Sharing URL <span class="cfg-hint">Open BlendERP_Tickets.xlsx on OneDrive → Share → Copy link → paste here</span></div>
+      <input class="inp" id="CFG_XL_URL" type="url" placeholder="https://blendgroupin-my.sharepoint.com/:x:/p/...">
+    </div>
     <div class="sec">Teams Notifications (Incoming Webhook — Free)</div>
     <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:10px 14px;font-size:12px;color:#3730A3;margin-bottom:12px">
-      ℹ Paste your Teams Incoming Webhook URL below. Every ticket raised, updated, resolved or closed will instantly post a card to your Teams channel. Free — no Power Automate needed.
+      ℹ Paste your Teams Incoming Webhook URL below. Every ticket posts a card to your Teams channel instantly.
     </div>
 
     <div class="cfg-row">
@@ -480,7 +529,13 @@ textarea.inp{height:70px;resize:vertical}
 // ══════════════════════════════════════════════════
 var CFG={
   pass:'admin123',
-  teams_webhook:''
+  ms_client_id:'', // Azure AD app client ID (optional — leave blank to use default)
+  allowed_domain:'blendgroup.in', // Only this domain can log in
+  teams_webhook:'',
+  sp_site:'',
+  sp_list:'BlendERP_Tickets',
+  sp_token:'',
+  xl_url:''
 };
 function loadCfg(){try{var c=localStorage.getItem('blend_cfg');if(c)CFG=Object.assign(CFG,JSON.parse(c));}catch(e){}}
 function persistCfg(){try{localStorage.setItem('blend_cfg',JSON.stringify(CFG));}catch(e){}}
@@ -703,7 +758,120 @@ function pbadge(p){var m={Urgent:'p-urgent',High:'p-high',Medium:'p-medium',Low:
 function dbadge(t){if(t.status==='Closed')return'<span class="dok">✓ Closed</span>';var d=diff(t.td);if(d===null)return'<span class="dn">—</span>';if(d<0)return'<span class="do">Overdue '+Math.abs(d)+'d</span>';if(d===0)return'<span class="do">Due today</span>';if(d===1)return'<span class="dw rem-badge">⏰ Tomorrow</span>';return'<span class="dok">'+fmt(t.td)+'</span>';}
 
 // ══ PAGES / TABS ══
-function showPg(id){['PG_PUB','PG_LOGIN','PG_ADM'].forEach(function(v){var e=G(v);if(e)e.style.display='none';});G(id).style.display='block';window.scrollTo(0,0);}
+// ══ MICROSOFT LOGIN GATE ══
+// Uses Microsoft Identity Platform implicit flow
+// Only @blendgroup.in accounts can access the portal
+var ALLOWED_DOMAIN='blendgroup.in';
+// Microsoft public client ID for Office (works without Azure app registration)
+// For production use your own Azure AD app client ID
+var MS_CLIENT_ID=CFG.ms_client_id||'14d82eec-204b-4c2f-b7e8-296a70dab67e';
+var MS_TENANT='common';
+
+function unlockPortal(name, email){
+  sessionStorage.setItem('blend_access','1');
+  sessionStorage.setItem('blend_ms_name', name||'');
+  sessionStorage.setItem('blend_ms_email', email||'');
+  var g=document.getElementById('PG_GATE');
+  var p=document.getElementById('PG_PUB');
+  if(g)g.style.display='none';
+  if(p)p.style.display='block';
+  // Pre-fill user details
+  if(name){CU.name=name;}
+  if(email){
+    CU.email=email;
+    var p2=name.split(' ');
+    CU.initials=((p2[0]||'')[0]||'').toUpperCase()+((p2[1]||'')[0]||'').toUpperCase();
+  }
+  boot();
+  applyUser(name, email);
+}
+
+function showGateError(msg){
+  var e=document.getElementById('GATE_ERR');
+  var l=document.getElementById('GATE_LOADING');
+  var b=document.getElementById('BTN_MS_LOGIN');
+  if(e){e.style.display='block';e.innerHTML=msg;}
+  if(l)l.style.display='none';
+  if(b)b.style.display='flex';
+}
+
+function msLogin(){
+  var errEl=document.getElementById('GATE_ERR');
+  var loadEl=document.getElementById('GATE_LOADING');
+  var btnEl=document.getElementById('BTN_MS_LOGIN');
+  if(errEl)errEl.style.display='none';
+  if(loadEl)loadEl.style.display='block';
+  if(btnEl)btnEl.style.display='none';
+
+  var redirect=window.location.origin+window.location.pathname;
+  var nonce=Math.random().toString(36).slice(2);
+  var authUrl='https://login.microsoftonline.com/'+MS_TENANT+'/oauth2/v2.0/authorize'
+    +'?client_id='+MS_CLIENT_ID
+    +'&response_type=id_token'
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&scope=openid+profile+email'
+    +'&response_mode=fragment'
+    +'&nonce='+nonce
+    +'&prompt=select_account';
+
+  var popup=window.open(authUrl,'MSLogin','width=520,height=640,left='+Math.round((screen.width-520)/2)+',top='+Math.round((screen.height-640)/2));
+  if(!popup){
+    if(loadEl)loadEl.style.display='none';
+    if(btnEl)btnEl.style.display='flex';
+    showGateError('&#9888; Please allow popups for this site, then try again.');
+    return;
+  }
+
+  var attempts=0;
+  var timer=setInterval(function(){
+    attempts++;
+    if(attempts>120){clearInterval(timer);showGateError('&#9888; Login timed out. Please try again.');}
+    try{
+      if(popup.closed){
+        clearInterval(timer);
+        if(loadEl)loadEl.style.display='none';
+        if(btnEl)btnEl.style.display='flex';
+        return;
+      }
+      var hash=popup.location.hash;
+      if(hash&&hash.indexOf('id_token=')>-1){
+        clearInterval(timer);
+        popup.close();
+        // Parse id_token JWT payload
+        var params=new URLSearchParams(hash.slice(1));
+        var idToken=params.get('id_token');
+        if(!idToken){showGateError('&#10060; Login failed. Please try again.');return;}
+        // Decode JWT payload (base64)
+        var parts=idToken.split('.');
+        if(parts.length<2){showGateError('&#10060; Invalid token. Please try again.');return;}
+        var payload=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+        var email=(payload.preferred_username||payload.email||payload.upn||'').toLowerCase();
+        var name=payload.name||email.split('@')[0];
+        // Check domain
+        if(!email||email.indexOf('@'+ALLOWED_DOMAIN)<0){
+          showGateError('&#10060; Access denied. Only @'+ALLOWED_DOMAIN+' accounts can access this portal.<br><br>You signed in as: <b>'+email+'</b>');
+          return;
+        }
+        unlockPortal(name, email);
+      }
+    }catch(e){}
+  },500);
+}
+
+// Auto-unlock if already verified this session
+(function(){
+  if(sessionStorage.getItem('blend_access')==='1'){
+    var name=sessionStorage.getItem('blend_ms_name')||'';
+    var email=sessionStorage.getItem('blend_ms_email')||'';
+    var g=document.getElementById('PG_GATE');
+    var p=document.getElementById('PG_PUB');
+    if(g)g.style.display='none';
+    if(p)p.style.display='block';
+    if(name||email){setTimeout(function(){applyUser(name,email);boot();},100);}
+  }
+})();
+
+function showPg(id){['PG_PUB','PG_LOGIN','PG_ADM','PG_GATE'].forEach(function(v){var e=G(v);if(e)e.style.display='none';});G(id).style.display='block';window.scrollTo(0,0);}
 function goAdmin(){G('L_ERR').style.display='none';G('L_PW').value='';showPg('PG_LOGIN');setTimeout(function(){G('L_PW').focus();},200);}
 function doLogin(){
   var pw=G('L_PW').value;
@@ -834,6 +1002,69 @@ function cpMsg(bid){
 }
 
 // ══ TEAMS WEBHOOK — sends card on every ticket action (free, no PA needed) ══
+// ══ SHAREPOINT WRITE — saves ticket directly to SP list ══
+function getSpDigest(cb){
+  if(!CFG.sp_site||!CFG.sp_token){cb('');return;}
+  fetch(CFG.sp_site+'/_api/contextinfo',{
+    method:'POST',
+    headers:{
+      'Accept':'application/json;odata=verbose',
+      'Content-Type':'application/json;odata=verbose',
+      'Authorization':'Bearer '+CFG.sp_token
+    }
+  }).then(function(r){return r.json();})
+  .then(function(d){cb(d.d.GetContextWebInformation.FormDigestValue);})
+  .catch(function(){cb('');});
+}
+
+function writeToSP(payload,comments){
+  if(!CFG.sp_site||!CFG.sp_token)return;
+  var p=payload;
+  var item={
+    '__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},
+    'Title':p.ticketId||'',
+    'Subject':p.subject||'',
+    'Category':p.category||'',
+    'SubCategory':p.subcategory||'',
+    'Priority':p.priority||'',
+    'Status':p.status||'Open',
+    'RaisedBy':p.raisedBy||p.requesterName||'',
+    'Mobile':p.requesterMobile||p.mobile||'',
+    'RequesterEmail':p.requesterEmail||'',
+    'AssignedTo':p.assigneeName||'',
+    'AssigneeEmail':p.assigneeEmail||'',
+    'TargetDate':p.targetDate?p.targetDate+'T00:00:00Z':null,
+    'RaisedOn':p.raisedOn?p.raisedOn+'T00:00:00Z':null,
+    'ClosedOn':p.closedOn?p.closedOn+'T00:00:00Z':null,
+    'Description':p.description||'',
+    'Source':p.source||'new',
+    'Comments':comments||''
+  };
+  setSPInd('...');
+  var spUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+CFG.sp_list+'%27)/items';
+  fetch(spUrl,{
+    headers:{
+      'Accept':'application/json;odata=verbose',
+      'Content-Type':'application/json;odata=verbose',
+      'Authorization':'Bearer '+CFG.sp_token
+    },
+    body:JSON.stringify(item)
+  }).then(function(r){
+    if(r.ok||r.status===201){
+      setSPInd('ok');
+      logM('SP Saved',p.ticketId||'','SharePoint','Row added');
+    } else {
+      r.text().then(function(t){
+        setSPInd('err');
+        console.error('SP write error:',r.status,t.slice(0,200));
+      });
+    }
+  }).catch(function(e){
+    setSPInd('err');
+    console.error('SP error:',e.message);
+  });
+}
+
 function callFlowEvent(eventType,payload){
   if(!payload)payload={};
   var hasTW=!!CFG.teams_webhook;
@@ -900,6 +1131,7 @@ function doSubmit(){
     assigneeName:aNames,assigneeEmail:aEmails,description:t.desc||'',
     attachmentCount:attsSnap.length,source:'new'};
   callFlowEvent('New Ticket',payload);
+  writeToSP(payload,'');
 
   // Teams notify buttons
   var notifyBtns=[];
@@ -1158,9 +1390,13 @@ function saveTkt(){
   var chgT=chg.length?chg.join(', '):'Details updated';
   saveStore();
   logM('Updated',curId,t.aEmail,'#'+curId+' — '+chgT);
-  callFlowEvent('Updated',{ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
+  var spPayload={ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
     category:t.cat,subcategory:t.sub,assigneeName:t.assign,assigneeEmail:t.aEmail||'',
-    targetDate:t.td||'',requesterName:t.by,requesterEmail:t.email||'',mobile:t.mob||'',description:t.desc||''});
+    targetDate:t.td||'',requesterName:t.by,requesterEmail:t.email||'',mobile:t.mob||'',
+    description:t.desc||'',raisedOn:t.raisedOn,closedOn:t.closedOn||''};
+  callFlowEvent('Updated',spPayload);
+  var cmtText=newCmt?('['+new Date().toLocaleDateString('en-IN')+'] Admin: '+newCmt):'';
+  writeToSP(spPayload,cmtText);
   var btns='';
   if(t.aEmail){
     var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
@@ -1291,11 +1527,38 @@ function openCfg(){G('CFG_WRAP').style.display='block';loadCfgToPanel();window.s
 function closeCfg(){G('CFG_WRAP').style.display='none';}
 function loadCfgToPanel(){
   G('CFG_PW').value='';G('CFG_CNT').value=cnt;
+  if(G('CFG_DOMAIN'))G('CFG_DOMAIN').value=CFG.allowed_domain||'blendgroup.in';
+  if(G('CFG_MSID'))G('CFG_MSID').value=CFG.ms_client_id||'';
+  if(G('CFG_SP_SITE'))G('CFG_SP_SITE').value=CFG.sp_site||'';
+  if(G('CFG_SP_LIST'))G('CFG_SP_LIST').value=CFG.sp_list||'BlendERP_Tickets';
+  if(G('CFG_SP_TOKEN'))G('CFG_SP_TOKEN').value=CFG.sp_token||'';
+  if(G('CFG_XL_URL'))G('CFG_XL_URL').value=CFG.xl_url||'';
   G('CFG_TW').value=CFG.teams_webhook||'';
 }
 function changePw(){var p=GV('CFG_PW');if(!p||p.length<4){showToast('Password must be at least 4 characters','warn');return;}CFG.pass=p;persistCfg();G('CFG_PW').value='';showToast('Password updated','ok');}
+function changeDomain(){
+  var d=(GV('CFG_DOMAIN')||'').toLowerCase().replace(/^@/,'').trim();
+  if(!d||d.indexOf('.')<0){showToast('Enter a valid domain e.g. blendgroup.in','warn');return;}
+  CFG.allowed_domain=d;
+  ALLOWED_DOMAIN=d;
+  persistCfg();
+  G('CFG_DOMAIN').value='';
+  showToast('Allowed domain updated to: @'+d,'ok');
+}
+function saveMsId(){
+  var id=GV('CFG_MSID')||'';
+  CFG.ms_client_id=id;
+  if(id)MS_CLIENT_ID=id;
+  persistCfg();
+  G('CFG_MSID').value='';
+  showToast(id?'Azure AD Client ID saved':'Client ID cleared — using default','ok');
+}
 function saveCnt(){var v=parseInt(GV('CFG_CNT'));if(isNaN(v)||v<1){showToast('Invalid number','warn');return;}cnt=v;saveStore();showToast('Counter set to '+v,'ok');}
 function saveCfg(){
+  CFG.sp_site=(GV('CFG_SP_SITE')||'').replace(/\/+$/,'');
+  CFG.sp_list=GV('CFG_SP_LIST')||'BlendERP_Tickets';
+  CFG.sp_token=GV('CFG_SP_TOKEN')||'';
+  CFG.xl_url=GV('CFG_XL_URL')||'';
   CFG.teams_webhook=GV('CFG_TW')||'';
   persistCfg();showToast('Settings saved','ok');closeCfg();
 }
@@ -1310,6 +1573,127 @@ function testFlow(){
 }
 
 // ══ EXCEL EXPORT ══
+// ══ ONEDRIVE EXCEL SYNC via Microsoft Graph ══
+var _msalToken=null;
+var _msalExpiry=0;
+
+function getMSToken(cb){
+  // Check if we have a valid token
+  if(_msalToken && Date.now() < _msalExpiry){cb(_msalToken);return;}
+  // Use implicit flow via popup - works without Azure app registration
+  // Uses the tenant's common endpoint
+  var clientId='common'; // Will use user's own tenant
+  var redirect=encodeURIComponent(window.location.origin+window.location.pathname);
+  var scope=encodeURIComponent('Files.ReadWrite offline_access');
+  // For M365 Business - use organization endpoint
+  var authUrl='https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+    +'?client_id=14d82eec-204b-4c2f-b7e8-296a70dab67e' // Microsoft Office client ID (public)
+    +'&response_type=token'
+    +'&redirect_uri='+redirect
+    +'&scope='+scope
+    +'&response_mode=fragment'
+    +'&prompt=select_account';
+  // Open popup
+  var popup=window.open(authUrl,'MSLogin','width=500,height=600,left=300,top=100');
+  if(!popup){showToast('Please allow popups for this site','warn');return;}
+  var timer=setInterval(function(){
+    try{
+      if(popup.closed){clearInterval(timer);showToast('Login cancelled','warn');return;}
+      var url=popup.location.href;
+      if(url && url.indexOf('access_token=')>-1){
+        clearInterval(timer);popup.close();
+        var params=new URLSearchParams(url.split('#')[1]);
+        _msalToken=params.get('access_token');
+        var exp=parseInt(params.get('expires_in')||'3600');
+        _msalExpiry=Date.now()+(exp-60)*1000;
+        cb(_msalToken);
+      }
+    }catch(e){}
+  },500);
+}
+
+function getWorkbookId(token, sharingUrl, cb){
+  // Convert sharing URL to Graph API URL
+  // Encode the URL to base64 then format as Graph sharing link
+  var encoded = btoa(sharingUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  var graphUrl = 'https://graph.microsoft.com/v1.0/shares/u!'+encoded+'/driveItem';
+  fetch(graphUrl,{headers:{'Authorization':'Bearer '+token}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.id){cb(d.parentReference&&d.parentReference.driveId,d.id);}
+    else{console.error('driveItem error:',d);cb(null,null);}
+  }).catch(function(e){console.error('driveItem fetch error:',e);cb(null,null);});
+}
+
+function syncToExcel(){
+  if(!CFG.xl_url){
+    showToast('Paste your OneDrive Excel URL in Admin → Settings first','warn');
+    openCfg();return;
+  }
+  showToast('Connecting to Microsoft 365…');
+  getMSToken(function(token){
+    if(!token){showToast('Login failed — try again','warn');return;}
+    showToast('Logged in. Syncing tickets…');
+    getWorkbookId(token, CFG.xl_url, function(driveId, itemId){
+      if(!itemId){showToast('Could not find Excel file — check URL in Settings','warn');return;}
+      // Get all tickets
+      var rows=tkts.map(function(t){
+        var lastCmt='';
+        if(t.comments&&t.comments.length){
+          lastCmt=t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | ');
+        }
+        return {
+          values:[[
+            t.id, t.subj, t.cat, t.sub, t.prio, t.status,
+            t.by, t.mob, t.email||'', t.assign, t.aEmail||'',
+            t.td||'', t.raisedOn||'', t.closedOn||'',
+            t.desc||'', t.source||'new', lastCmt
+          ]]
+        };
+      });
+      // Clear existing data first (keep header)
+      var clearUrl='https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+itemId+'/workbook/tables/TicketsTable/rows/clear';
+      fetch(clearUrl,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}})
+      .then(function(){
+        // Add all rows in batches of 50
+        var batches=[];
+        for(var i=0;i<rows.length;i+=50){batches.push(rows.slice(i,i+50));}
+        var addUrl='https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+itemId+'/workbook/tables/TicketsTable/rows/add';
+        function addBatch(idx){
+          if(idx>=batches.length){
+            showToast('✓ '+tkts.length+' tickets synced to OneDrive Excel!','ok');
+            setSPInd('ok');
+            return;
+          }
+          var batchVals=batches[idx].map(function(r){return r.values[0];});
+          fetch(addUrl,{
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+            body:JSON.stringify({values:batchVals})
+          }).then(function(r){
+            if(r.ok){addBatch(idx+1);}
+            else{r.text().then(function(t){console.error('Add rows error:',t);showToast('Sync error — check console','warn');});}
+          }).catch(function(e){showToast('Network error: '+e.message,'warn');});
+        }
+        addBatch(0);
+      }).catch(function(e){
+        // Clear failed - maybe table is empty, just add rows
+        console.log('Clear failed (ok if empty):',e.message);
+        var addUrl='https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+itemId+'/workbook/tables/TicketsTable/rows/add';
+        var allVals=rows.map(function(r){return r.values[0];});
+        fetch(addUrl,{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+          body:JSON.stringify({values:allVals})
+        }).then(function(r){
+          if(r.ok){showToast('✓ '+tkts.length+' tickets synced to OneDrive Excel!','ok');}
+          else{r.text().then(function(t2){console.error('Add error:',t2);showToast('Sync failed — check Excel URL in Settings','warn');});}
+        });
+      });
+    });
+  });
+}
+
 function doExport(){
   function build(){
     var X=window.XLSX;
