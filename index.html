@@ -746,9 +746,9 @@ function renderAttList(elId,list,onRm){
   var el=G(elId);if(!el)return;
   if(!list.length){el.innerHTML='';return;}
   el.innerHTML=list.map(function(a,i){
-    var isImg=a.type.startsWith('image/');
+    var isImg=a.type&&a.type.startsWith('image/');
     var icon=isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄';
-    return'<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="(function(){var fn='+JSON.stringify(onRm.toString())+';})();rmAtt(''+elId+'','+i+')">✕</span></div>';
+    return '<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="rmAtt(&quot;'+elId+'&quot;,'+i+')">&#x2715;</span></div>';
   }).join('');
 }
 function rmAtt(elId,idx){
@@ -770,19 +770,17 @@ function renderEpAtts(){
   var el=G('EP_ATTLIST');if(!el)return;
   if(!epAtts.length){el.innerHTML='';return;}
   el.innerHTML=epAtts.map(function(a,i){
-    var isImg=a.type.startsWith('image/');
+    var isImg=a.type&&a.type.startsWith('image/');
     var icon=isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄';
-    return'<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="rmAtt('EP_ATTLIST','+i+')">✕</span></div>';
+    return '<div class="att-item">'+icon+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a><span class="att-rm" onclick="rmAtt(&quot;EP_ATTLIST&quot;,'+i+')">&#x2715;</span></div>';
   }).join('');
-}
-function attListHtml(atts){
+}function attListHtml(atts){
   if(!atts||!atts.length)return'';
   return'<div class="att-list" style="margin-top:6px">'+atts.map(function(a){
     var isImg=a.type&&a.type.startsWith('image/');
     return'<div class="att-item">'+(isImg?'<img src="'+a.dataURL+'" class="att-img">':'📄')+'<a href="'+a.dataURL+'" download="'+a.name+'" target="_blank">'+a.name+'</a></div>';
   }).join('')+'</div>';
 }
-
 // ══ ASSIGNEE CHIPS ══
 function showSug(){
   var q=(GV('F_AE')||'').toLowerCase();var list=G('SUGLIST');
@@ -809,17 +807,14 @@ function remAsgn(i){selAsgn.splice(i,1);renderChips();}
 
 // ══ TEAMS BUTTON HELPER ══
 function teamsBtn(email,name,lines,label){
-  var msg=lines.join('
-');
+  var msg=lines.join('\n');
   var enc=encodeURIComponent(msg);
   var url='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(email)+'&message='+enc;
   var bid='tb_'+Math.random().toString(36).slice(2,8);
-  window._tm=window._tm||{};window._tm[bid]=msg+'
-
-To: '+email;
+  window._tm=window._tm||{};window._tm[bid]=msg+'\n\nTo: '+email;
   return'<span style="display:inline-flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">'
     +'<a href="'+url+'" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">📨 '+label+'</a>'
-    +'<button class="btn b-sm" onclick="cpMsg(''+bid+'')" title="Copy message to clipboard">📋 Copy</button>'
+    +'<button class="btn b-sm" data-bid="'+bid+'" onclick="cpMsg(this.dataset.bid)">Copy</button>'
     +'</span>';
 }
 function cpMsg(bid){
@@ -902,8 +897,8 @@ function doSubmit(){
     var lines=['Hi '+a.name+', a new ERP support ticket has been assigned to you.','',
       '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
       '🔴 Priority: '+t.prio,'👤 Raised By: '+nm+' ('+fullEM+')','📱 Mobile: '+fullMB,
-      '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'
-🗓 Target Date: '+fmt(tdVal):'')];
+      '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):'')];
+
     if(t.desc)lines.push('📝 Description: '+t.desc);
     lines.push('','Please action at the earliest.','— Blend ERP Support');
     notifyBtns.push(teamsBtn(a.email,a.name,lines,'Notify '+a.name));
@@ -911,8 +906,8 @@ function doSubmit(){
   var rLines=['Hi '+nm+', your ERP support ticket has been raised successfully.','',
     '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
     '🔴 Priority: '+t.prio,'👤 Assigned To: '+aNames,
-    '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'
-🗓 Target Date: '+fmt(tdVal):''),
+    '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):''),
+
     '','You can track status at any time using your ticket number or email.','— Blend ERP Support'];
   notifyBtns.push(teamsBtn(fullEM,nm,rLines,'Send Confirmation to '+nm));
 
@@ -925,7 +920,7 @@ function doSubmit(){
     +(attsSnap.length?'<tr><td style="padding:4px 8px;color:#605E5C">Attachments</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+attsSnap.map(function(a){return'<a href="'+a.dataURL+'" download="'+a.name+'" style="color:#6264A7;margin-right:8px">📎 '+a.name+'</a>';}).join('')+'</td></tr>':'')
     +'</table>';
   G('S_MSG').innerHTML='<div style="font-weight:700;margin-bottom:8px;color:#3730A3">📨 Notify via Teams</div>'
-    +'<div style="font-size:11px;color:#605E5C;margin-bottom:10px">Click 📨 to open Teams chat (pre-filled message). Click 📋 to copy if Teams doesn't open.</div>'
+    +'<div style="font-size:11px;color:#605E5C;margin-bottom:10px">Click 📨 to open Teams chat (pre-filled message). Click 📋 to copy if Teams does not open.</div>'
     +notifyBtns.join('');
   if(G('S_SP_STATUS')&&!CFG.teams_webhook)G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ Configure SharePoint in Admin → ⚙ Settings to save tickets to Microsoft 365.</span>';
 
