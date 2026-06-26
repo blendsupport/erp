@@ -696,14 +696,40 @@ function checkEmail(){
   sessionStorage.setItem('blend_access','1');sessionStorage.setItem('blend_ms_email',email);sessionStorage.setItem('blend_ms_name',name);
   var g=document.getElementById('PG_GATE'),pub=document.getElementById('PG_PUB');
   if(g)g.style.display='none';if(pub)pub.style.display='block';
-  setTimeout(function(){boot();applyUser(name,email);getSpToken(function(){});handleTeamsActions();},100);
+  // Small delay ensures DOM is fully visible before boot
+  setTimeout(function(){
+    boot();
+    applyUser(name,email);
+    getSpToken(function(){});
+    handleTeamsActions();
+    // Force category repopulation after render
+    setTimeout(function(){
+      if(typeof fillSel==='function'&&typeof CATS!=='undefined'){
+        var CK2=Object.keys(CATS);
+        fillSel('F_CAT',CK2,function(){if(typeof updSub==='function')updSub();});
+        if(typeof updSub==='function')updSub();
+      }
+    },200);
+  },100);
 }
 (function(){
   if(sessionStorage.getItem('blend_access')==='1'){
     var name=sessionStorage.getItem('blend_ms_name')||'',email=sessionStorage.getItem('blend_ms_email')||'';
     var g=document.getElementById('PG_GATE'),p=document.getElementById('PG_PUB');
     if(g)g.style.display='none';if(p)p.style.display='block';
-    setTimeout(function(){boot();if(name||email)applyUser(name,email);getSpToken(function(){});handleTeamsActions();},100);
+    setTimeout(function(){
+      boot();
+      if(name||email)applyUser(name,email);
+      getSpToken(function(){});
+      handleTeamsActions();
+      setTimeout(function(){
+        if(typeof fillSel==='function'&&typeof CATS!=='undefined'){
+          var CK2=Object.keys(CATS);
+          fillSel('F_CAT',CK2,function(){if(typeof updSub==='function')updSub();});
+          if(typeof updSub==='function')updSub();
+        }
+      },200);
+    },100);
   }
 })();
 
