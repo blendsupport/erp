@@ -317,8 +317,8 @@ textarea.inp{height:70px;resize:vertical}
     <span id="SP_IND" class="sp-off" style="font-size:10px" title="OneDrive sync status">⬤ OneDrive</span>
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
-    <button class="btn b-sm b-green" onclick="doExport()">⬇ Excel</button>
-    <button class="btn b-sm" onclick="syncAllToExcel()" title="Download all tickets as Excel file" style="background:#0078D4;color:#fff;border-color:#0078D4">&#11015; Download Excel</button>
+    <button class="btn b-sm b-green" onclick="doExport()">&#11015; Export Excel</button>
+    
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
@@ -405,7 +405,7 @@ textarea.inp{height:70px;resize:vertical}
     <div style="background:#F5F5F5;border-radius:6px;padding:14px;font-size:12px;color:#252424;line-height:1.8">
       <b>Step 1 — Create Excel file on OneDrive</b><br>
       Go to <b>onedrive.live.com</b> → New → Excel workbook → rename it <b>BlendERP_Tickets</b>.<br>
-      Add headers in Row 1: TicketID, Subject, Category, SubCategory, Priority, Status, RaisedBy, Mobile, RequesterEmail, AssignedTo, AssigneeEmail, TargetDate, RaisedOn, ClosedOn, Description, Source, Attachments.<br>
+      Add headers in Row 1: TicketID, Subject, Category, SubCategory, Priority, Status, RaisedBy, Mobile, RequesterEmail, AssignedTo, AssigneeEmail, TargetDate, RaisedOn, ClosedOn, Description, Source, Comments.<br>
       Select row 1 → Insert → Table → tick "My table has headers" → rename table to <b>TicketsTable</b>.<br><br>
       <b>Step 2 — Import legacy tickets</b><br>
       In the admin panel click Export Excel → download file → copy all data rows → paste into OneDrive Excel from row 2.<br><br>
@@ -1300,12 +1300,10 @@ function syncOneTicketToExcel(t, silent){
 }
 
 function writeTicketToSPList(t, silent){
-  // Uses SharePoint REST API with browser's existing M365 session (cookie auth)
-  // No token required — works if user is already logged into Microsoft 365
   if(!CFG.sp_site||!CFG.sp_list)return;
-  var url=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items';
+  var listUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)';
   var item={
-    '__metadata':{'type':'SP.Data.'+CFG.sp_list.replace(/[^a-zA-Z0-9]/g,'')+'ListItem'},
+    '__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},
     'Title':String(t.id||''),
     'Subject':t.subj||'',
     'Category':t.cat||'',
@@ -1318,9 +1316,11 @@ function writeTicketToSPList(t, silent){
     'AssignedTo':t.assign||'',
     'AssigneeEmail':t.aEmail||'',
     'Description':t.desc||'',
-    'Source':t.source||'new'
+    'Source':t.source||'new',
+    'ClosedOn':t.closedOn||'',
+    'Comments':t.comments?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):''
   };
-  // Get form digest first (required for SP POST)
+  // Get form digest
   fetch(CFG.sp_site+'/_api/contextinfo',{
     method:'POST',
     headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'},
@@ -1329,25 +1329,51 @@ function writeTicketToSPList(t, silent){
   .then(function(ctx){
     var digest=ctx.d&&ctx.d.GetContextWebInformation&&ctx.d.GetContextWebInformation.FormDigestValue;
     if(!digest)return;
-    return fetch(url,{
-      method:'POST',
-      headers:{
-        'Accept':'application/json;odata=verbose',
-        'Content-Type':'application/json;odata=verbose',
-        'X-RequestDigest':digest
-      },
-      credentials:'include',
-      body:JSON.stringify(item)
+    // Check if item exists first (by Title=TicketID)
+    return fetch(listUrl+"/items?$filter=Title eq '"+String(t.id||"")+"'&$select=Id",{
+      headers:{'Accept':'application/json;odata=verbose'},
+      credentials:'include'
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var existing=d.d&&d.d.results&&d.d.results[0];
+      if(existing){
+        // UPDATE existing item
+        return fetch(listUrl+'/items('+existing.Id+')',{
+          method:'POST',
+          headers:{
+            'Accept':'application/json;odata=verbose',
+            'Content-Type':'application/json;odata=verbose',
+            'X-RequestDigest':digest,
+            'X-HTTP-Method':'MERGE',
+            'If-Match':'*'
+          },
+          credentials:'include',
+          body:JSON.stringify(item)
+        });
+      } else {
+        // CREATE new item
+        return fetch(listUrl+'/items',{
+          method:'POST',
+          headers:{
+            'Accept':'application/json;odata=verbose',
+            'Content-Type':'application/json;odata=verbose',
+            'X-RequestDigest':digest
+          },
+          credentials:'include',
+          body:JSON.stringify(item)
+        });
+      }
     });
   }).then(function(r){
-    if(r&&r.ok){
+    if(r&&(r.ok||r.status===204)){
       setSPInd('ok');
-      if(!silent)showToast('Saved to SharePoint list ✓','ok');
+      if(!silent)showToast('Saved to SharePoint ✓','ok');
     }
   }).catch(function(e){
-    console.log('SP write (non-critical):', e.message);
+    console.log('SP write (non-critical):',e.message);
   });
 }
+
 
 function syncAllToExcel(){
   // Download all tickets as Excel file — always works, no auth needed
