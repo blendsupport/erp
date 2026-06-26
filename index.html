@@ -318,6 +318,7 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">⬇ Excel</button>
+    <button class="btn b-sm" onclick="syncAllToExcel()" style="background:#0078D4;color:#fff;border-color:#0078D4">&#128260; Sync Excel</button>
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
@@ -551,6 +552,7 @@ var DIRECTORY=(function(){
   var base=[
     {name:'Pavan Kumar',     email:'pavan.kumar@blendgroup.in'},
     {name:'Prabhakar Godha', email:'prabhakar.godha@blendgroup.in'},
+    {name:'Mounika Kolluru', email:'mounika.kolluru@blendgroup.in'},
     {name:'It Admin',        email:'it.admin@blendgroup.in'}
   ];
   try{var e=JSON.parse(localStorage.getItem('blend_assignees')||'[]');return base.concat(e);}
@@ -881,6 +883,7 @@ function doSubmit(){
     assigneeName:aNames,assigneeEmail:aEmails,description:t.desc||'',
     attachmentCount:attsSnap.length,source:'new'};
   callFlowEvent('New Ticket',payload);
+  if(CFG.xl_url)syncOneTicketToExcel(t,false);
 
   // Teams notify buttons
   var notifyBtns=[];
@@ -1094,7 +1097,9 @@ function saveTkt(){
       '— Blend ERP Support'],'Notify '+t.by+' (Requester)');
   }
   showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
-  showToast('Ticket #'+curId+' saved','ok');renderAdm();
+  showToast('Ticket #'+curId+' saved','ok');
+  if(CFG.xl_url)syncOneTicketToExcel(t,false);
+  syncOneTicketToExcel(t,true); // auto-save to ExcelrenderAdm();
 }
 
 function markPend(){
@@ -1235,6 +1240,205 @@ function testFlow(){
 }
 
 // ══ EXCEL EXPORT ══
+// ══ ONEDRIVE EXCEL AUTO-SYNC ══
+var _xlToken=null; var _xlExpiry=0;
+
+function getXlToken(cb){
+  // Use stored token or get new one
+  if(_xlToken&&Date.now()<_xlExpiry){cb(_xlToken);return;}
+  // Try to get token silently from Microsoft Graph
+  // Since user is already authenticated via email gate, use the app's token approach
+  // Store token after first sync
+  cb(null);
+}
+
+function ticketToRow(t){
+  var cmts='';
+  if(t.comments&&t.comments.length){
+    cmts=t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | ');
+  }
+  return [
+    t.id||'', t.subj||'', t.cat||'', t.sub||'', t.prio||'', t.status||'',
+    t.by||'', t.mob||'', t.email||'', t.assign||'', t.aEmail||'',
+    t.td||'', t.raisedOn||'', t.closedOn||'',
+    t.desc||'', t.source||'new', cmts
+  ];
+}
+
+function syncOneTicketToExcel(t, silent){
+  if(!CFG.xl_url){
+    if(!silent)showToast('Add OneDrive Excel URL in Admin → Settings first','warn');
+    return;
+  }
+  if(!silent)setSPInd('...');
+
+  // Use Microsoft Graph API with implicit auth
+  var redirect=window.location.origin+window.location.pathname;
+  var scope=encodeURIComponent('Files.ReadWrite');
+
+  // Check if we have a token
+  if(_xlToken&&Date.now()<_xlExpiry){
+    doWriteToExcel(t, _xlToken, silent);
+    return;
+  }
+
+  // Get token via popup
+  var nonce=Math.random().toString(36).slice(2);
+  var authUrl='https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+    +'?client_id=14d82eec-204b-4c2f-b7e8-296a70dab67e'
+    +'&response_type=token'
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&scope='+scope
+    +'&response_mode=fragment'
+    +'&nonce='+nonce
+    +'&prompt=none'; // silent - no login UI
+
+  var popup=window.open(authUrl,'XLAuth','width=600,height=600,left=300,top=100');
+  if(!popup){
+    // Fallback: ask user to click sync button
+    if(!silent)showToast('Please allow popups to sync to Excel','warn');
+    return;
+  }
+
+  var attempts=0;
+  var timer=setInterval(function(){
+    attempts++;
+    if(attempts>30){
+      clearInterval(timer);
+      try{popup.close();}catch(e){}
+      if(!silent)showToast('Auto-login to Excel timed out — click Sync to Excel to sign in','warn');
+      return;
+    }
+    try{
+      if(popup.closed){clearInterval(timer);return;}
+      var hash=popup.location.hash;
+      if(hash&&hash.indexOf('access_token=')>-1){
+        clearInterval(timer);
+        try{popup.close();}catch(e){}
+        var params=new URLSearchParams(hash.slice(1));
+        var token=params.get('access_token');
+        var exp=parseInt(params.get('expires_in')||'3600');
+        _xlToken=token;
+        _xlExpiry=Date.now()+(exp-60)*1000;
+        doWriteToExcel(t,token,silent);
+      }
+    }catch(ex){}
+  },500);
+}
+
+function doWriteToExcel(t, token, silent){
+  // Convert sharing URL to Graph driveItem
+  var sharingUrl=CFG.xl_url;
+  var encoded=btoa(sharingUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  var graphUrl='https://graph.microsoft.com/v1.0/shares/u!'+encoded+'/driveItem';
+
+  fetch(graphUrl,{headers:{'Authorization':'Bearer '+token}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.id){
+      if(!silent)showToast('Could not find Excel file — check URL in Settings','warn');
+      setSPInd('err');
+      return;
+    }
+    var driveId=d.parentReference&&d.parentReference.driveId;
+    var itemId=d.id;
+    var addUrl='https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+itemId+'/workbook/tables/TicketsTable/rows/add';
+    var row=ticketToRow(t);
+    fetch(addUrl,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[row]})
+    }).then(function(r2){
+      if(r2.ok){
+        setSPInd('ok');
+        if(!silent)showToast('✓ Saved to OneDrive Excel','ok');
+        logM('Excel',t.id,'OneDrive','Row added to TicketsTable');
+      } else {
+        r2.text().then(function(txt){
+          console.error('Excel write error:',txt.slice(0,200));
+          setSPInd('err');
+          if(!silent)showToast('Excel sync failed — check console','warn');
+        });
+      }
+    }).catch(function(e){
+      setSPInd('err');
+      if(!silent)showToast('Excel sync error: '+e.message,'warn');
+    });
+  }).catch(function(e){
+    setSPInd('err');
+    if(!silent)showToast('Could not connect to OneDrive','warn');
+  });
+}
+
+function syncAllToExcel(){
+  if(!CFG.xl_url){showToast('Add OneDrive Excel URL in Admin → Settings first','warn');openCfg();return;}
+  showToast('Connecting to OneDrive Excel...');
+  var redirect=window.location.origin+window.location.pathname;
+  var nonce=Math.random().toString(36).slice(2);
+  var authUrl='https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+    +'?client_id=14d82eec-204b-4c2f-b7e8-296a70dab67e'
+    +'&response_type=token'
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&scope='+encodeURIComponent('Files.ReadWrite')
+    +'&response_mode=fragment'
+    +'&nonce='+nonce
+    +'&prompt=select_account';
+  var popup=window.open(authUrl,'XLAuth','width=520,height=640,left='+Math.round((screen.width-520)/2)+',top=100');
+  if(!popup){showToast('Please allow popups for Excel sync','warn');return;}
+  var attempts=0;
+  var timer=setInterval(function(){
+    attempts++;
+    if(attempts>120){clearInterval(timer);showToast('Login timed out','warn');}
+    try{
+      if(popup.closed){clearInterval(timer);return;}
+      var hash=popup.location.hash;
+      if(hash&&hash.indexOf('access_token=')>-1){
+        clearInterval(timer);try{popup.close();}catch(e){}
+        var params=new URLSearchParams(hash.slice(1));
+        var token=params.get('access_token');
+        var exp=parseInt(params.get('expires_in')||'3600');
+        _xlToken=token;_xlExpiry=Date.now()+(exp-60)*1000;
+        showToast('Signed in. Syncing '+tkts.length+' tickets...');
+        bulkWriteToExcel(token);
+      }
+    }catch(ex){}
+  },500);
+}
+
+function bulkWriteToExcel(token){
+  var sharingUrl=CFG.xl_url;
+  var encoded=btoa(sharingUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  fetch('https://graph.microsoft.com/v1.0/shares/u!'+encoded+'/driveItem',{headers:{'Authorization':'Bearer '+token}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.id){showToast('Excel file not found — check URL in Settings','warn');return;}
+    var driveId=d.parentReference&&d.parentReference.driveId;
+    var base='https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+d.id+'/workbook/tables/TicketsTable/rows';
+    // Clear then re-add all
+    fetch(base+'/clear',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}})
+    .then(function(){addAllRows(base+'/add',token);})
+    .catch(function(){addAllRows(base+'/add',token);}); // if clear fails (empty table), just add
+  }).catch(function(e){showToast('Could not connect to OneDrive: '+e.message,'warn');});
+}
+
+function addAllRows(addUrl,token){
+  var rows=tkts.map(function(t){return ticketToRow(t);});
+  var batches=[];
+  for(var i=0;i<rows.length;i+=50)batches.push(rows.slice(i,i+50));
+  function addBatch(idx){
+    if(idx>=batches.length){
+      setSPInd('ok');
+      showToast('✓ '+tkts.length+' tickets synced to OneDrive Excel!','ok');
+      return;
+    }
+    fetch(addUrl,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({values:batches[idx]})})
+    .then(function(r){if(r.ok){addBatch(idx+1);}else{r.text().then(function(t){console.error('Batch error:',t);showToast('Sync error on batch '+idx,'warn');});}})
+    .catch(function(e){showToast('Error: '+e.message,'warn');});
+  }
+  addBatch(0);
+}
+
 function doExport(){
   function build(){
     var X=window.XLSX;
