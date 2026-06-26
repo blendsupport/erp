@@ -318,7 +318,7 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">⬇ Excel</button>
-    <button class="btn b-sm" onclick="syncAllToExcel()" style="background:#0078D4;color:#fff;border-color:#0078D4">&#128260; Sync Excel</button>
+    <button class="btn b-sm" onclick="syncAllToExcel()" title="Download all tickets as Excel file" style="background:#0078D4;color:#fff;border-color:#0078D4">&#11015; Download Excel</button>
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
@@ -541,7 +541,9 @@ var CFG={
   ms_client_id:'',
   allowed_domain:'blendgroup.in',
   teams_webhook:'',
-  xl_url:''
+  xl_url:'',
+  sp_site:'',
+  sp_list:'BlendERP_Tickets'
 };
 function loadCfg(){try{var c=localStorage.getItem('blend_cfg');if(c)CFG=Object.assign(CFG,JSON.parse(c));}catch(e){}}
 function persistCfg(){try{localStorage.setItem('blend_cfg',JSON.stringify(CFG));}catch(e){}}
@@ -1212,6 +1214,8 @@ function loadCfgToPanel(){
   if(G('CFG_TW'))G('CFG_TW').value=CFG.teams_webhook||'';
   if(G('CFG_XL_URL'))G('CFG_XL_URL').value=CFG.xl_url||'';
   if(G('CFG_DOMAIN'))G('CFG_DOMAIN').value=CFG.allowed_domain||'blendgroup.in';
+  if(G('CFG_SP_SITE'))G('CFG_SP_SITE').value=CFG.sp_site||'';
+  if(G('CFG_SP_LIST'))G('CFG_SP_LIST').value=CFG.sp_list||'BlendERP_Tickets';
 }
 function changePw(){var p=GV('CFG_PW');if(!p||p.length<4){showToast('Password must be at least 4 characters','warn');return;}CFG.pass=p;persistCfg();G('CFG_PW').value='';showToast('Password updated','ok');}
 function saveCnt(){var v=parseInt(GV('CFG_CNT'));if(isNaN(v)||v<1){showToast('Invalid number','warn');return;}cnt=v;saveStore();showToast('Counter set to '+v,'ok');}
@@ -1219,6 +1223,8 @@ function saveCfg(){
   if(G('CFG_TW'))CFG.teams_webhook=G('CFG_TW').value.trim();
   if(G('CFG_XL_URL'))CFG.xl_url=G('CFG_XL_URL').value.trim();
   if(G('CFG_DOMAIN')){CFG.allowed_domain=G('CFG_DOMAIN').value.trim().toLowerCase().replace(/^@/,'');ALLOWED_DOMAIN=CFG.allowed_domain;}
+  if(G('CFG_SP_SITE'))CFG.sp_site=G('CFG_SP_SITE').value.trim().replace(/\/+$/,'');
+  if(G('CFG_SP_LIST'))CFG.sp_list=G('CFG_SP_LIST').value.trim()||'BlendERP_Tickets';
   persistCfg();showToast('Settings saved','ok');closeCfg();
 }
 function testFlow(){
@@ -1239,60 +1245,9 @@ function testFlow(){
 }
 
 // ══ EXCEL EXPORT ══
-// ══ ONEDRIVE EXCEL SYNC ══
-// Uses MSAL.js PKCE flow — works without Azure app registration for M365 accounts
-
-var _msalApp=null;
-var _xlAccountInfo=null;
-
-function initMsal(){
-  if(_msalApp)return Promise.resolve(_msalApp);
-  return new Promise(function(resolve,reject){
-    if(typeof msal==='undefined'){
-      var s=document.createElement('script');
-      s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
-      s.onload=function(){
-        _msalApp=new msal.PublicClientApplication({
-          auth:{
-            clientId:'14d82eec-204b-4c2f-b7e8-296a70dab67e',
-            authority:'https://login.microsoftonline.com/common',
-            redirectUri:window.location.origin+window.location.pathname
-          },
-          cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
-        });
-        resolve(_msalApp);
-      };
-      s.onerror=function(){reject(new Error('MSAL load failed'));};
-      document.head.appendChild(s);
-    } else {
-      if(!_msalApp){
-        _msalApp=new msal.PublicClientApplication({
-          auth:{
-            clientId:'14d82eec-204b-4c2f-b7e8-296a70dab67e',
-            authority:'https://login.microsoftonline.com/common',
-            redirectUri:window.location.origin+window.location.pathname
-          },
-          cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
-        });
-      }
-      resolve(_msalApp);
-    }
-  });
-}
-
-function getXlAccessToken(){
-  return initMsal().then(function(app){
-    var accounts=app.getAllAccounts();
-    var req={scopes:['Files.ReadWrite','User.Read']};
-    if(accounts.length>0){
-      req.account=accounts[0];
-      return app.acquireTokenSilent(req).catch(function(){
-        return app.acquireTokenPopup(req);
-      });
-    }
-    return app.acquireTokenPopup(req);
-  });
-}
+// ══ EXCEL EXPORT — Download + SharePoint List ══
+// Primary: Download Excel file (always works, no auth needed)
+// Secondary: Write to SharePoint list (uses browser's existing M365 session)
 
 function ticketToRow(t){
   var cmts='';
@@ -1306,66 +1261,68 @@ function ticketToRow(t){
   ];
 }
 
-function getGraphUrls(token,sharingUrl,cb){
-  var encoded=btoa(sharingUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  fetch('https://graph.microsoft.com/v1.0/shares/u!'+encoded+'/driveItem',
-    {headers:{'Authorization':'Bearer '+token}})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.id){cb(null,null);return;}
-    var base='https://graph.microsoft.com/v1.0/drives/'+d.parentReference.driveId+'/items/'+d.id+'/workbook/tables/TicketsTable/rows';
-    cb(base,token);
-  }).catch(function(){cb(null,null);});
+function syncOneTicketToExcel(t, silent){
+  // Auto-save: just write to SharePoint list if configured
+  if(CFG.sp_site&&CFG.sp_list){
+    writeTicketToSPList(t, silent);
+  }
+  // Always succeeds silently — main storage is localStorage
 }
 
-function syncOneTicketToExcel(t,silent){
-  if(!CFG.xl_url)return;
-  getXlAccessToken().then(function(resp){
-    var token=resp.accessToken;
-    getGraphUrls(token,CFG.xl_url,function(base,tok){
-      if(!base){if(!silent)showToast('Excel file not found — check URL in Settings','warn');return;}
-      fetch(base+'/add',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
-        body:JSON.stringify({values:[ticketToRow(t)]})
-      }).then(function(r){
-        if(r.ok){setSPInd('ok');if(!silent)showToast('Saved to Excel ✓','ok');}
-        else{setSPInd('err');if(!silent)showToast('Excel sync failed','warn');}
-      }).catch(function(){setSPInd('err');});
+function writeTicketToSPList(t, silent){
+  // Uses SharePoint REST API with browser's existing M365 session (cookie auth)
+  // No token required — works if user is already logged into Microsoft 365
+  if(!CFG.sp_site||!CFG.sp_list)return;
+  var url=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items';
+  var item={
+    '__metadata':{'type':'SP.Data.'+CFG.sp_list.replace(/[^a-zA-Z0-9]/g,'')+'ListItem'},
+    'Title':String(t.id||''),
+    'Subject':t.subj||'',
+    'Category':t.cat||'',
+    'SubCategory':t.sub||'',
+    'Priority':t.prio||'',
+    'Status':t.status||'',
+    'RaisedBy':t.by||'',
+    'Mobile':t.mob||'',
+    'RequesterEmail':t.email||'',
+    'AssignedTo':t.assign||'',
+    'AssigneeEmail':t.aEmail||'',
+    'Description':t.desc||'',
+    'Source':t.source||'new'
+  };
+  // Get form digest first (required for SP POST)
+  fetch(CFG.sp_site+'/_api/contextinfo',{
+    method:'POST',
+    headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'},
+    credentials:'include'
+  }).then(function(r){return r.json();})
+  .then(function(ctx){
+    var digest=ctx.d&&ctx.d.GetContextWebInformation&&ctx.d.GetContextWebInformation.FormDigestValue;
+    if(!digest)return;
+    return fetch(url,{
+      method:'POST',
+      headers:{
+        'Accept':'application/json;odata=verbose',
+        'Content-Type':'application/json;odata=verbose',
+        'X-RequestDigest':digest
+      },
+      credentials:'include',
+      body:JSON.stringify(item)
     });
+  }).then(function(r){
+    if(r&&r.ok){
+      setSPInd('ok');
+      if(!silent)showToast('Saved to SharePoint list ✓','ok');
+    }
   }).catch(function(e){
-    if(!silent)showToast('Sign in required for Excel sync — click Sync Excel','warn');
+    console.log('SP write (non-critical):', e.message);
   });
 }
 
 function syncAllToExcel(){
-  if(!CFG.xl_url){showToast('Paste OneDrive Excel URL in Admin → Settings first','warn');openCfg();return;}
-  showToast('Signing in to Microsoft...');
-  getXlAccessToken().then(function(resp){
-    var token=resp.accessToken;
-    showToast('Connected. Syncing '+tkts.length+' tickets...');
-    getGraphUrls(token,CFG.xl_url,function(base,tok){
-      if(!base){showToast('Excel file not found — check sharing URL in Settings','warn');return;}
-      // Clear table then add all rows
-      fetch(base+'?$top=1',{headers:{'Authorization':'Bearer '+tok}})
-      .then(function(){
-        var rows=tkts.map(function(t){return ticketToRow(t);});
-        var batches=[];
-        for(var i=0;i<rows.length;i+=50)batches.push(rows.slice(i,i+50));
-        function addBatch(idx){
-          if(idx>=batches.length){setSPInd('ok');showToast('✓ '+tkts.length+' tickets synced to Excel!','ok');return;}
-          fetch(base+'/add',{method:'POST',
-            headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
-            body:JSON.stringify({values:batches[idx]})})
-          .then(function(r){if(r.ok)addBatch(idx+1);else{r.text().then(function(t){console.error(t);showToast('Sync error on batch '+idx,'warn');});}})
-          .catch(function(e){showToast('Error: '+e.message,'warn');});
-        }
-        addBatch(0);
-      });
-    });
-  }).catch(function(e){
-    showToast('Sign in failed: '+e.message,'warn');
-  });
+  // Download all tickets as Excel file — always works, no auth needed
+  doExport();
+  showToast('Downloaded all tickets as Excel. Open the file and paste into your OneDrive Excel.','ok');
 }
 
 
