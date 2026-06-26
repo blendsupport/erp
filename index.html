@@ -313,7 +313,8 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">&#11015; Export Excel</button>
     <button class="btn b-sm" onclick="loadFromSP()" style="background:#217346;color:#fff;border-color:#217346">&#128260; Load from SP</button>
-    <button class="btn b-sm" onclick="syncAllSPTickets()" style="background:#0078D4;color:#fff;border-color:#0078D4">&#128257; Sync to SP</button>
+    <button class="btn b-sm" onclick="signInToSP()" style="background:#8B5CF6;color:#fff;border-color:#8B5CF6">&#128274; Sign in to SP</button>
+    <button class="btn b-sm" onclick="syncAllSPTickets()" style="background:#0078D4;color:#fff;border-color:#0078D4">&#128257; Sync All to SP</button>
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
@@ -534,24 +535,115 @@ function spLoadAll(cb){
 }
 function loadFromSP(){
   if(!CFG.sp_site||!CFG.sp_list){showToast('Add SharePoint URL in Settings first','warn');openCfg();return;}
-  showToast('Loading from SharePoint...');
-  spLoadAll(function(ok,added){if(ok)showToast(added>0?'\u2713 '+added+' new tickets loaded':'All up to date','ok');else showToast('Could not connect to SharePoint','warn');});
+  showToast('Connecting to SharePoint...');
+  // First ensure MSAL is loaded and user is signed in
+  function doLoad(){
+    spLoadAll(function(ok,added){
+      if(ok){
+        showToast(added>0?'\u2713 '+added+' new tickets loaded. Total: '+tkts.length:'\u2713 All tickets up to date','ok');
+        renderAdm();
+      } else {
+        showToast('\u26a0 Could not connect. Signing in to Microsoft 365...','warn');
+        // Force sign-in popup
+        if(typeof msal!=='undefined'&&window._msal){
+          window._msal.acquireTokenPopup({scopes:['https://blendgroupin.sharepoint.com/.default']})
+          .then(function(r){
+            _spToken=r.accessToken;_spExpiry=Date.now()+3500000;
+            showToast('Signed in! Loading tickets...','ok');
+            spLoadAll(function(ok2,added2){
+              if(ok2){showToast('\u2713 '+added2+' tickets loaded','ok');renderAdm();}
+              else showToast('Still cannot connect. Check SharePoint URL in Settings.','warn');
+            });
+          }).catch(function(e){
+            showToast('Sign-in failed: '+e.message,'warn');
+          });
+        } else {
+          // MSAL not loaded yet - load it first
+          var s=document.createElement('script');
+          s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
+          s.onload=function(){
+            window._msal=new msal.PublicClientApplication({
+              auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',
+                authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',
+                redirectUri:window.location.origin+window.location.pathname},
+              cache:{cacheLocation:'sessionStorage'}
+            });
+            window._msal.acquireTokenPopup({scopes:['https://blendgroupin.sharepoint.com/.default']})
+            .then(function(r){
+              _spToken=r.accessToken;_spExpiry=Date.now()+3500000;
+              showToast('Signed in! Loading tickets...','ok');
+              spLoadAll(function(ok2,added2){
+                if(ok2){showToast('\u2713 '+added2+' tickets loaded','ok');renderAdm();}
+                else showToast('Still cannot connect. Check SharePoint URL in Settings.','warn');
+              });
+            }).catch(function(e){showToast('Sign-in failed: '+e.message,'warn');});
+          };
+          document.head.appendChild(s);
+        }
+      }
+    });
+  }
+  doLoad();
 }
 function syncAllSPTickets(){
   if(!CFG.sp_site||!CFG.sp_list){showToast('Add SharePoint URL in Settings first','warn');openCfg();return;}
-  showToast('Syncing all tickets...');var i=0;
-  function next(){if(i>=tkts.length){showToast('\u2713 All '+tkts.length+' tickets synced','ok');return;}spSaveTicket(tkts[i]);i++;setTimeout(next,300);}
-  next();
+  // First sign in to get SP token
+  loadFromSP();
+  showToast('Use Load from SP button first, then Sync to SP','ok');
+}
+function syncToExcelViaDownload(){
+  showToast('Downloading Excel — open file and paste into OneDrive BlendERP_Tickets.xlsx','ok');
+  setTimeout(doExport,500);
 }
 function startAutoSync(){
   if(_syncInt)return;
   spLoadAll(function(ok,added){if(ok&&added>0){if(typeof renderAdm==='function')renderAdm();showToast(added+' new tickets loaded','ok');}});
   _syncInt=setInterval(function(){
-    var el=document.getElementById('PG_ADM');if(!el||el.style.display==='none')return;
-    spLoadAll(function(ok,added){if(ok&&added>0){if(typeof renderAdm==='function')renderAdm();showToast(added+' tickets synced','ok');}});
+    try{
+      var el=document.getElementById('PG_ADM');if(!el||el.style.display==='none')return;
+      if(!_spToken||Date.now()>=_spExpiry)return; // Only sync if already signed in
+      spLoadAll(function(ok,added){if(ok&&added>0){if(typeof renderAdm==='function')renderAdm();showToast(added+' new tickets','ok');}});
+    }catch(e){}
   },60000);
 }
 function stopAutoSync(){if(_syncInt){clearInterval(_syncInt);_syncInt=null;}}
+
+function signInToSP(){
+  showToast('Opening Microsoft 365 sign-in...');
+  function doSignIn(app){
+    app.acquireTokenPopup({scopes:['https://blendgroupin.sharepoint.com/.default','User.Read']})
+    .then(function(r){
+      _spToken=r.accessToken;_spExpiry=Date.now()+3500000;
+      showToast('\u2713 Signed in to SharePoint! Loading tickets...','ok');
+      spLoadAll(function(ok,added){
+        if(ok){renderAdm();showToast('\u2713 '+added+' tickets loaded from SharePoint','ok');}
+        else showToast('Connected but no new tickets found','ok');
+      });
+    }).catch(function(e){showToast('Sign-in failed: '+e.message,'warn');});
+  }
+  if(typeof msal==='undefined'){
+    var s=document.createElement('script');
+    s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
+    s.onload=function(){
+      if(!window._msal)window._msal=new msal.PublicClientApplication({
+        auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',
+          authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',
+          redirectUri:window.location.origin+window.location.pathname},
+        cache:{cacheLocation:'sessionStorage'}
+      });
+      doSignIn(window._msal);
+    };
+    document.head.appendChild(s);
+  } else {
+    if(!window._msal)window._msal=new msal.PublicClientApplication({
+      auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',
+        authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',
+        redirectUri:window.location.origin+window.location.pathname},
+      cache:{cacheLocation:'sessionStorage'}
+    });
+    doSignIn(window._msal);
+  }
+}
 function resolveTicketById(tid){
   var t=tkts.filter(function(x){return x.id===tid;})[0];if(!t)return;
   t.status='Closed';t.closedOn=today();saveStore();spSaveTicket(t);
@@ -924,39 +1016,7 @@ function callFlowEvent(eventType,payload){
   fetch(CFG.teams_webhook,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)});
 }
 
-function callFlowEvent(url,payload){
-  if(!url){
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ OneDrive not configured. Go to Admin → ⚙ Settings → paste your Power Automate flow URLs.</span>');
-    return;
-  }
-  setSPInd('...');
-  // Clean the payload — remove undefined/null values, trim strings
-  var clean={};
-  Object.keys(payload).forEach(function(k){
-    var v=payload[k];
-    if(v===undefined||v===null)v='';
-    if(typeof v==='string')v=v.trim();
-    clean[k]=v;
-  });
-  fetch(url,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(clean)
-  })
-  .then(function(){
-    // no-cors always resolves — PA received the data
-    setSPInd('ok');
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-ok">✓ Sent to OneDrive Excel</span>');
-  })
-  .catch(function(err){
-    setSPInd('err');
-    console.error('Flow error:',err);
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-err">✗ Flow call failed — check URL in Settings. Error: '+err.message+'</span>');
-  });
-}
 
-// ══ SUBMIT NEW TICKET ══
 function doSubmit(){
   var sj=GV('F_SJ'),nm=GV('F_NM'),mb=GV('F_MB'),em=GV('F_EM');
   var pe=GV('F_AE');
@@ -990,7 +1050,7 @@ function doSubmit(){
     raisedBy:nm,raisedOn:t.raisedOn,targetDate:tdVal||'',requesterEmail:fullEM,requesterMobile:fullMB,
     assigneeName:aNames,assigneeEmail:aEmails,description:t.desc||'',
     attachmentCount:attsSnap.length,source:'new'};
-  callFlowEvent(CFG.teams_webhook,payload);
+  callFlowEvent('New Ticket',payload);
 
   // Teams notify buttons
   var notifyBtns=[];
@@ -1189,7 +1249,7 @@ function saveTkt(){
   var nc=typeof getEpComment==='function'?getEpComment():'';if(nc){addCommentToTicket(curId,'Admin',nc);clearEpComment&&clearEpComment();}
   saveStore();
   logM('Updated',curId,t.aEmail,'#'+curId+' — '+chgT);
-  callFlowEvent(CFG.flow_updated,{ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
+  callFlowEvent('Updated',{ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
     assigneeName:t.assign,assigneeEmail:t.aEmail,targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
   var btns='';
   if(t.aEmail){
@@ -1212,7 +1272,7 @@ function markPend(){
   if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
   t.desc=GV('EP_DS');t.status='Pending Closure';saveStore();
   logM('Resolved',curId,t.email,'#'+curId+' resolved');
-  callFlowEvent(CFG.flow_resolved,{ticketId:curId,subject:t.subj,status:'Pending Closure',
+  callFlowEvent('Resolved',{ticketId:curId,subject:t.subj,status:'Pending Closure',
     assigneeName:t.assign,assigneeEmail:t.aEmail||'',requesterName:t.by,requesterEmail:t.email||'',
     category:t.cat,subcategory:t.sub,priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',
     raisedOn:t.raisedOn,description:t.desc||''});
@@ -1237,7 +1297,7 @@ function confirmCC(){
   var rem=G('CC_REM').value.trim();
   t.status='Closed';t.closedOn=today();if(rem)t.desc=(t.desc||'')+' | Resolution: '+rem;
   saveStore();logM('Closed',curId,t.email,'#'+curId+' closed');
-  callFlowEvent(CFG.flow_closed,{ticketId:curId,subject:t.subj,status:'Closed',closedOn:today(),
+  callFlowEvent('Closed',{ticketId:curId,subject:t.subj,status:'Closed',closedOn:today(),
     resolution:rem||'Issue resolved',assigneeName:t.assign,assigneeEmail:t.aEmail||'',
     requesterName:t.by,requesterEmail:t.email||'',category:t.cat,subcategory:t.sub,
     priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',raisedOn:t.raisedOn,description:t.desc||''});
