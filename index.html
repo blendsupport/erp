@@ -903,11 +903,11 @@ function doSubmit(){
   selAsgn.forEach(function(a){
     var lines=['Hi '+a.name+', a new ERP support ticket has been assigned to you.','',
       '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
-      '🔴 Priority: '+t.prio,'👤 Raised By: '+nm+' ('+fullEM+')','📱 Mobile: '+fullMB,
+      '🔴 Priority: '+t.prio,'👤 Raised By: '+nm,'📱 Mobile: '+fullMB,
       '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):'')];
 
     if(t.desc)lines.push('📝 Description: '+t.desc);
-    lines.push('','Please action at the earliest.','— Blend ERP Support');
+    lines.push('','Please action this at the earliest.','— Blend ERP Support');
     notifyBtns.push(teamsBtn(a.email,a.name,lines,'Notify '+a.name));
   });
   var rLines=['Hi '+nm+', your ERP support ticket has been raised successfully.','',
@@ -915,7 +915,7 @@ function doSubmit(){
     '🔴 Priority: '+t.prio,'👤 Assigned To: '+aNames,
     '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):''),
 
-    '','You can track status at any time using your ticket number or email.','— Blend ERP Support'];
+    '','You can track your ticket status anytime using your ticket number.','— Blend ERP Support'];
   notifyBtns.push(teamsBtn(fullEM,nm,rLines,'Send Confirmation to '+nm));
 
   G('S_NUM').textContent=id;
@@ -1266,10 +1266,28 @@ function ticketToRow(t){
   if(t.comments&&t.comments.length){
     cmts=t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | ');
   }
+  // Column order matches Excel headers exactly:
+  // TicketID | Subject | Category | SubCategory | Priority | Status | RaisedBy | Mobile
+  // RequesterEmail | AssignedTo | AssigneeEmail | TargetDate | RaisedOn | ClosedOn
+  // Description | Source | Comments
   return [
-    t.id||'',t.subj||'',t.cat||'',t.sub||'',t.prio||'',t.status||'',
-    t.by||'',t.mob||'',t.email||'',t.assign||'',t.aEmail||'',
-    t.td||'',t.raisedOn||'',t.closedOn||'',t.desc||'',t.source||'new',cmts
+    t.id||'',          // A - TicketID
+    t.subj||'',        // B - Subject
+    t.cat||'',         // C - Category
+    t.sub||'',         // D - SubCategory
+    t.prio||'',        // E - Priority
+    t.status||'',      // F - Status
+    t.by||'',          // G - RaisedBy
+    t.mob||'',         // H - Mobile
+    t.email||'',       // I - RequesterEmail
+    t.assign||'',      // J - AssignedTo
+    t.aEmail||'',      // K - AssigneeEmail
+    t.td||'',          // L - TargetDate
+    t.raisedOn||'',    // M - RaisedOn
+    t.closedOn||'',    // N - ClosedOn
+    t.desc||'',        // O - Description
+    t.source||'new',   // P - Source
+    cmts               // Q - Comments
   ];
 }
 
