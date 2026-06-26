@@ -483,8 +483,8 @@ textarea.inp{height:70px;resize:vertical}
 
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
 
-<script>var ALLOWED_DOMAIN=CFG.allowed_domain||'blendgroup.in';
-var MS_CLIENT_ID=CFG.ms_client_id||'14d82eec-204b-4c2f-b7e8-296a70dab67e';
+<script>var ALLOWED_DOMAIN='blendgroup.in';
+var MS_CLIENT_ID='14d82eec-204b-4c2f-b7e8-296a70dab67e';
 var MS_TENANT='common';
 function showGateError(msg){var e=document.getElementById('GATE_ERR'),l=document.getElementById('GATE_LOADING'),b=document.getElementById('BTN_MS_LOGIN');if(e){e.style.display='block';e.innerHTML=msg;}if(l)l.style.display='none';if(b)b.style.display='flex';}
 function tryJwt(token){try{var p=token.split('.');if(p.length<2)return;var d=JSON.parse(atob(p[1].replace(/-/g,'+').replace(/_/g,'/')));var email=(d.preferred_username||d.email||d.upn||'').toLowerCase();var name=d.name||email.split('@')[0];var domain=ALLOWED_DOMAIN||'blendgroup.in';if(!email||email.indexOf('@'+domain)<0){showGateError('Access denied. Only @'+domain+' accounts allowed. Signed in as: <b>'+email+'</b>');return;}unlockPortal(name,email);}catch(ex){showGateError('Login error. Please try again.');}}
@@ -494,7 +494,7 @@ function msLogin(){
   if(e)e.style.display='none';if(l)l.style.display='block';if(b)b.style.display='none';
   var redirect=window.location.origin+window.location.pathname;
   var nonce=Math.random().toString(36).slice(2);
-  var authUrl='https://login.microsoftonline.com/'+MS_TENANT+'/oauth2/v2.0/authorize'
+  var authUrl='https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
     +'?client_id='+MS_CLIENT_ID+'&response_type=token&redirect_uri='+encodeURIComponent(redirect)
     +'&scope='+encodeURIComponent('openid profile email User.Read')+'&response_mode=fragment&nonce='+nonce+'&prompt=select_account';
   var popup=window.open(authUrl,'MSLogin','width=520,height=640,left='+Math.round((screen.width-520)/2)+',top=100');
@@ -538,6 +538,7 @@ var DIRECTORY=(function(){
   var base=[
     {name:'Pavan Kumar',     email:'pavan.kumar@blendgroup.in'},
     {name:'Prabhakar Godha', email:'prabhakar.godha@blendgroup.in'},
+    {name:'Mounika Kolluru', email:'mounika.kolluru@blendgroup.in'},
     {name:'It Admin',        email:'it.admin@blendgroup.in'}
   ];
   try{var e=JSON.parse(localStorage.getItem('blend_assignees')||'[]');return base.concat(e);}
