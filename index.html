@@ -274,7 +274,7 @@ textarea.inp{height:70px;resize:vertical}
 <div id="V3" style="display:none">
 <div class="card">
   <div style="font-size:16px;font-weight:700;color:#252424;margin-bottom:4px">🔍 Track Your Ticket</div>
-  <div style="font-size:12px;color:#605E5C;margin-bottom:12px">Enter ticket number (e.g. 202) or your email address.</div>
+  <div style="font-size:12px;color:#605E5C;margin-bottom:12px">Enter exact ticket number or your email address</div>
   <table class="ft"><tbody><tr>
     <td><input class="inp" id="TRK_Q" placeholder="Ticket number or email…" onkeydown="if(event.key==='Enter')doTrack()"></td>
     <td style="width:100px;padding-left:8px"><button class="btn b-blue" onclick="doTrack()" style="width:100%;padding:9px;justify-content:center">Search</button></td>
@@ -318,7 +318,9 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">&#11015; Export Excel</button>
+    <button class="btn b-sm" onclick="loadFromSP()" style="background:#217346;color:#fff;border-color:#217346" title="Load all tickets from SharePoint into admin panel">&#128260; Load from SP</button>
     <button class="btn b-sm" onclick="syncAllSPTickets()" style="background:#0078D4;color:#fff;border-color:#0078D4" title="Push all tickets to SharePoint → auto-updates OneDrive Excel">&#128260; Sync to Excel</button>
+    <button class="btn b-sm" onclick="tkts=loadStore();renderAdm();showToast('Refreshed — '+tkts.length+' tickets loaded','ok')" style="background:#6264A7;color:#fff;border-color:#6264A7" title="Reload tickets from browser storage">&#8635; Refresh</button>
     
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
@@ -688,8 +690,20 @@ function showPg(id){['PG_PUB','PG_LOGIN','PG_ADM','PG_GATE'].forEach(function(v)
 function goAdmin(){G('L_ERR').style.display='none';G('L_PW').value='';showPg('PG_LOGIN');setTimeout(function(){G('L_PW').focus();},200);}
 function doLogin(){
   var pw=G('L_PW').value;
-  if(pw===CFG.pass){G('L_ERR').style.display='none';G('L_PW').value='';initAdm();renderAdm();showPg('PG_ADM');loadCfgToPanel();}
-  else{G('L_ERR').style.display='block';}
+  if(pw===CFG.pass){
+    G('L_ERR').style.display='none';
+    G('L_PW').value='';
+    // Reload tickets from localStorage to get latest (including new tickets raised this session)
+    tkts=loadStore();
+    var saved=parseInt(localStorage.getItem('blend_cnt')||'202',10);
+    if(!isNaN(saved)&&saved>cnt)cnt=saved;
+    initAdm();
+    renderAdm();
+    showPg('PG_ADM');
+    loadCfgToPanel();
+  } else {
+    G('L_ERR').style.display='block';
+  }
 }
 function doLogout(){curId=null;showPg('PG_PUB');}
 G('L_PW').onkeydown=function(e){if(e.key==='Enter')doLogin();};
@@ -1026,7 +1040,27 @@ function renderMy(){
 function doTrack(){
   var q=(GV('TRK_Q')||'').toLowerCase().replace(/^0+/,'');
   var el=G('TRK_RES');if(!q){el.innerHTML='';return;}
-  var found=tkts.filter(function(t){return t.id.replace(/^0+/,'')==q||t.email.toLowerCase()===q||(q.length>2&&t.subj.toLowerCase().indexOf(q)>=0);});
+  // Smart search:
+  // - Pure numbers → exact ticket ID match only
+  // - Email format → exact email match
+  // - Text with letters → search subject/description
+  var isNum=/^\d+$/.test(q);
+  var isEmail=q.indexOf('@')>0;
+  var found=tkts.filter(function(t){
+    if(isNum){
+      // Exact ticket number match only
+      return t.id.replace(/^0+/,'')==q||String(t.id)==q;
+    }
+    if(isEmail){
+      // Exact email match
+      return t.email.toLowerCase()===q;
+    }
+    // Text search — subject and description
+    return q.length>2&&(
+      t.subj.toLowerCase().indexOf(q)>=0||
+      (t.desc&&t.desc.toLowerCase().indexOf(q)>=0)
+    );
+  });
   if(!found.length){el.innerHTML='<div style="padding:20px;text-align:center;background:#F5F5F5;border-radius:8px;color:#605E5C">No ticket found for <b>'+q+'</b>. Try your email or ticket number.</div>';return;}
   var SO=['Open','In Progress','On Hold','Pending Closure','Closed'],html='';
   found.forEach(function(t){
@@ -1353,6 +1387,74 @@ function syncOneTicketToExcel(t, silent){
     writeTicketToSPList(t, silent);
   }
   // Always succeeds silently — main storage is localStorage
+}
+
+
+// ══ LOAD TICKETS FROM SHAREPOINT ══
+function loadFromSP(){
+  if(!CFG.sp_site||!CFG.sp_list){
+    showToast('Add SharePoint URL in Settings first','warn');
+    openCfg();return;
+  }
+  showToast('Loading tickets from SharePoint...');
+  var url=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items?$select=Title,Subject,Category,SubCategory,Priority,Status,RaisedBy,Mobile,RequesterEmail,AssignedTo,AssigneeEmail,TargetDate,RaisedOn,ClosedOn,Description,Source,Comments&$top=1000&$orderby=Id%20desc';
+  fetch(url,{
+    headers:{'Accept':'application/json;odata=verbose'},
+    credentials:'include'
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.d||!d.d.results){
+      showToast('Could not read from SharePoint. Make sure you are signed in to Microsoft 365.','warn');
+      return;
+    }
+    var items=d.d.results;
+    if(!items.length){showToast('No tickets found in SharePoint list','warn');return;}
+    // Merge SP items into local tkts
+    var existing={};
+    tkts.forEach(function(t){existing[String(t.id)]=1;});
+    var added=0;
+    items.forEach(function(item){
+      var tid=String(item.Title||'').trim();
+      if(!tid)return;
+      if(!existing[tid]){
+        // New ticket from SP - add to local
+        tkts.unshift({
+          id:tid,
+          subj:item.Subject||'',
+          cat:item.Category||'Others',
+          sub:item.SubCategory||'General Query',
+          prio:item.Priority||'Medium',
+          status:item.Status||'Open',
+          by:item.RaisedBy||'',
+          mob:item.Mobile||'',
+          email:item.RequesterEmail||'',
+          assign:item.AssignedTo||'Unassigned',
+          aEmail:item.AssigneeEmail||'',
+          td:item.TargetDate||'',
+          raisedOn:item.RaisedOn||'',
+          closedOn:item.ClosedOn||'',
+          desc:item.Description||'',
+          source:item.Source||'sp',
+          comments:[],
+          atts:[]
+        });
+        existing[tid]=1;
+        added++;
+      }
+    });
+    // Sort by ID descending
+    tkts.sort(function(a,b){
+      var ai=parseInt(String(a.id).replace(/\D/g,''))||0;
+      var bi=parseInt(String(b.id).replace(/\D/g,''))||0;
+      return bi-ai;
+    });
+    saveStore();
+    renderAdm();
+    showToast('✓ Loaded '+added+' new tickets from SharePoint. Total: '+tkts.length+' tickets.','ok');
+  }).catch(function(e){
+    showToast('SharePoint connection error. Make sure you are signed in to Microsoft 365 in this browser.','warn');
+    console.error('SP load error:',e);
+  });
 }
 
 function syncAllSPTickets(){
