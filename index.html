@@ -116,7 +116,7 @@ textarea.inp{height:70px;resize:vertical}
 .att-rm{cursor:pointer;color:#6264A7;font-size:13px;line-height:1}.att-rm:hover{color:#C4314B}
 .att-img{width:36px;height:36px;object-fit:cover;border-radius:3px;border:1px solid #C7D2FE}
 /* SETTINGS PANEL */
-.cfg-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F0}
+.cfg-row{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid #F0F0F0}
 .cfg-lbl{flex:1;font-size:12px;color:#252424;font-weight:600}
 .cfg-hint{font-size:11px;color:#888;font-weight:400;display:block}
 /* REMINDER badge */
@@ -366,13 +366,18 @@ textarea.inp{height:70px;resize:vertical}
       <div class="cfg-lbl">Power Automate — Reminder Flow URL <span class="cfg-hint">Called daily to send due-date reminders</span></div>
       <input class="inp" id="CFG_F5" type="url" placeholder="https://prod-xx.westus.logic.azure.com/…">
     </div>
-    <div style="margin-top:12px;display:flex;gap:8px">
-      <div class="cfg-row"><div class="cfg-lbl">Teams Webhook URL <span class="cfg-hint">From Teams channel Workflows</span></div><input class="inp" id="CFG_TW" type="url" placeholder="https://...webhook.office.com/..." style="width:100%;max-width:600px"></div>
-    <div class="cfg-row"><div class="cfg-lbl">OneDrive Excel URL <span class="cfg-hint">Open BlendERP_Tickets.xlsx on OneDrive &rarr; Share &rarr; Copy link</span></div><input class="inp" id="CFG_XL_URL" type="url" placeholder="https://blendgroupin-my.sharepoint.com/..." style="width:100%;max-width:600px"></div>
-    <div class="cfg-row"><div class="cfg-lbl">Allowed Domain</div><input class="inp" id="CFG_DOMAIN" placeholder="blendgroup.in" style="width:200px"></div>
+    <div style="margin-top:12px">
+      <div class="cfg-row"><div class="cfg-lbl">Teams Webhook URL <span class="cfg-hint">From Teams ERP Tickets channel &rarr; Workflows &rarr; Copy webhook link</span></div>
+      <input class="inp" id="CFG_TW" type="url" placeholder="https://default5e09d88b...powerplatform.com/..." style="width:100%;max-width:600px"></div>
+    <div class="cfg-row"><div class="cfg-lbl">OneDrive Excel URL <span class="cfg-hint">Open BlendERP_Tickets.xlsx on OneDrive &rarr; Share &rarr; Copy link</span></div>
+      <input class="inp" id="CFG_XL_URL" type="url" placeholder="https://blendgroupin-my.sharepoint.com/..." style="width:100%;max-width:600px"></div>
+    <div class="cfg-row"><div class="cfg-lbl">Allowed Domain <span class="cfg-hint">Only emails from this domain can raise tickets</span></div>
+      <input class="inp" id="CFG_DOMAIN" placeholder="blendgroup.in" style="width:200px"></div>
     <div class="sec" style="margin-top:16px">SharePoint (optional)</div>
-    <div class="cfg-row"><div class="cfg-lbl">SharePoint Site URL</div><input class="inp" id="CFG_SP_SITE" type="url" placeholder="https://blendgroupin.sharepoint.com/sites/BlendSupport" style="max-width:480px"></div>
-    <div class="cfg-row"><div class="cfg-lbl">SharePoint List Name</div><input class="inp" id="CFG_SP_LIST" placeholder="BlendERP_Tickets" style="width:220px"></div>
+    <div class="cfg-row"><div class="cfg-lbl">SharePoint Site URL</div>
+      <input class="inp" id="CFG_SP_SITE" type="url" placeholder="https://blendgroupin.sharepoint.com/sites/BlendSupport" style="width:100%;max-width:600px"></div>
+    <div class="cfg-row"><div class="cfg-lbl">SharePoint List Name</div>
+      <input class="inp" id="CFG_SP_LIST" placeholder="BlendERP_Tickets" style="width:220px"></div>
     <button class="btn b-blue" onclick="saveCfg()">💾 Save All Settings</button>
       <button class="btn" onclick="closeCfg()">Cancel</button>
       <button class="btn b-sm" onclick="testFlow()" style="margin-left:auto">🧪 Test Flows</button>
@@ -983,7 +988,7 @@ function renderAdm(){
   var ub=G('URG_B');ub.textContent='🔴 '+urg+' Urgent';ub.style.display=urg?'inline':'none';
   var c={Open:0,'In Progress':0,'On Hold':0,'Pending Closure':0,Closed:0,Overdue:0};
   tkts.forEach(function(t){if(c[t.status]!==undefined)c[t.status]++;var d=diff(t.td);if(t.status!=='Closed'&&d!==null&&d<0)c.Overdue++;});
-  G('SUM_DIV').innerHTML='<div class="sumbar">'
+  G('SUM_DIV').innerHTML='<div class="sumbar" title="Tickets stored in this browser. Use Sync Excel to see all devices.">'
     +'<div class="sc"><div class="scv" style="color:#3730A3">'+c.Open+'</div><div class="scl">Open</div></div>'
     +'<div class="sc"><div class="scv" style="color:#713F12">'+c['In Progress']+'</div><div class="scl">In Progress</div></div>'
     +'<div class="sc"><div class="scv" style="color:#374151">'+c['On Hold']+'</div><div class="scl">On Hold</div></div>'
@@ -1319,8 +1324,12 @@ function getExcelUrls(tok,cb){
   }).catch(function(){cb(null);});
 }
 
+var _syncedIds={};
 function syncOneToExcel(t){
   if(!CFG.xl_url)return;
+  // Deduplicate - don't sync same ticket twice in same session
+  if(_syncedIds[t.id]){return;}
+  _syncedIds[t.id]=1;
   getToken(['Files.ReadWrite'],function(tok){
     if(!tok)return;
     getExcelUrls(tok,function(base,tk){
@@ -1333,27 +1342,62 @@ function syncOneToExcel(t){
 
 function syncAllToExcel(){
   if(!CFG.xl_url){showToast('Add OneDrive Excel URL in Settings first','warn');openCfg();return;}
+  if(!confirm('Clear Excel table and re-sync all '+tkts.length+' tickets? (Removes duplicates)'))return;
   showToast('Connecting to OneDrive...');
   getToken(['Files.ReadWrite'],function(tok){
     if(!tok){showToast('Sign-in failed. Try again.','warn');return;}
-    showToast('Syncing '+tkts.length+' tickets to Excel...');
     getExcelUrls(tok,function(base,tk){
       if(!base){showToast('Excel file not found. Check URL in Settings.','warn');return;}
-      var rows=tkts.map(ticketToRow);
-      var batches=[];
-      for(var i=0;i<rows.length;i+=50)batches.push(rows.slice(i,i+50));
-      function addBatch(idx){
-        if(idx>=batches.length){showToast('\u2713 '+tkts.length+' tickets synced to Excel!','ok');return;}
-        fetch(base+'/add',{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({values:batches[idx]})})
-        .then(function(r){if(r.ok)addBatch(idx+1);else r.text().then(function(t){showToast('Error: '+t.slice(0,100),'warn');});})
-        .catch(function(e){showToast('Error: '+e.message,'warn');});
-      }
-      addBatch(0);
+      // Step 1: Clear ALL existing rows using range clear
+      var tableBase=base.replace('/rows','');
+      // Get row count first
+      fetch(base+'?$top=2000',{headers:{'Authorization':'Bearer '+tk}})
+      .then(function(r){return r.json();})
+      .then(function(existing){
+        var existingRows=existing&&existing.value?existing.value:[];
+        showToast('Removing '+existingRows.length+' old rows...');
+        // Delete from bottom up to avoid index shifting
+        function deleteRows(cb){
+          if(existingRows.length===0){cb();return;}
+          // Delete all at once using range delete
+          fetch(tableBase+'/range',{headers:{'Authorization':'Bearer '+tk}})
+          .then(function(r){return r.json();})
+          .then(function(range){
+            if(!range||!range.address){cb();return;}
+            // Clear the data rows (not header)
+            var clearUrl=tableBase+'/dataBodyRange/delete';
+            fetch(clearUrl,{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({shift:'Up'})})
+            .then(function(){cb();}).catch(function(){cb();});
+          }).catch(function(){cb();});
+        }
+        deleteRows(function(){
+          showToast('Adding '+tkts.length+' tickets...');
+          var rows=tkts.map(ticketToRow);
+          var batches=[];
+          for(var i=0;i<rows.length;i+=50)batches.push(rows.slice(i,i+50));
+          function addBatch(idx){
+            if(idx>=batches.length){
+              showToast('\u2713 '+tkts.length+' tickets synced to Excel! No duplicates.','ok');
+              _syncedIds={};// Reset dedup cache
+              return;
+            }
+            fetch(base,{method:'POST',
+              headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},
+              body:JSON.stringify({values:batches[idx]})
+            }).then(function(r){
+              if(r.ok)addBatch(idx+1);
+              else r.text().then(function(t){showToast('Error: '+t.slice(0,100),'warn');});
+            }).catch(function(e){showToast('Error: '+e.message,'warn');});
+          }
+          addBatch(0);
+        });
+      }).catch(function(){
+        showToast('Could not read Excel. Check URL in Settings.','warn');
+      });
     });
   });
 }
 
-// Teams action handlers
 function handleTeamsActions(){
   var p=new URLSearchParams(window.location.search);
   var rid=p.get('resolve'),tid=p.get('target'),vid=p.get('t');
