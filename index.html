@@ -315,13 +315,14 @@ textarea.inp{height:70px;resize:vertical}
     <button class="btn b-sm" onclick="checkReminders()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⏰ Reminders</button>
     <button class="btn b-sm" onclick="toggleML()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">📋 Log</button>
     <button class="btn b-sm b-green" onclick="doExport()">&#11015; Export Excel</button>
+    <a href="https://blendgroupin-my.sharepoint.com/:x:/g/personal/mounika_kolluru_blendgroup_in/IQD-7_aeYedKSLR8XJQsin_wAegWtdIrkyjMBAfcdkH0JRk?e=MeaoD1" target="_blank" class="btn b-sm" style="background:#217346;color:#fff;border-color:#217346;text-decoration:none;display:inline-flex;align-items:center;gap:4px">&#128200; View Master Excel</a>
     <button class="btn b-sm" onclick="syncAllToExcel()" style="background:#217346;color:#fff;border-color:#217346" title="Sync all tickets directly to OneDrive Excel">&#128202; Sync to Excel</button>
     <button class="btn b-sm" onclick="openCfg()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);font-size:10px">⚙ Settings</button>
     <button class="btn b-sm" onclick="doLogout()" style="background:#C4314B;color:#fff;border-color:#C4314B;font-size:10px">Logout</button>
   </div>
 </div>
 <div class="content">
-  <div id="SUM_DIV"></div>
+  <div id="SUM_DIV" title="Tickets from this browser. For all tickets from all devices, click View Master Excel"></div>
   <div id="ALT_DIV"></div>
   <!-- NOTIFICATION LOG -->
   <div id="ML_WRAP" style="display:none" class="ml-card">
@@ -337,7 +338,7 @@ textarea.inp{height:70px;resize:vertical}
     <div class="sec">Security</div>
     <div class="cfg-row">
       <div class="cfg-lbl">Admin Password <span class="cfg-hint">Change from the default to secure your panel</span></div>
-      <input class="inp" id="CFG_PW" type="password" placeholder="New password" style="width:180px">
+      <input class="inp" id="CFG_PW" placeholder="Enter new password (min 6 chars) or leave blank" type="password" placeholder="New password" style="width:180px">
       <button class="btn b-sm b-blue" onclick="changePw()">Save</button>
     </div>
     <div class="cfg-row">
@@ -484,7 +485,7 @@ textarea.inp{height:70px;resize:vertical}
 //  CONFIG  (loaded from localStorage / Settings panel)
 // ══════════════════════════════════════════════════
 var CFG={
-  pass:'admin123',
+  pass:localStorage.getItem('blend_admin_pass')||'Blend@2024#ERP',
   allowed_domain:'blendgroup.in',
   teams_webhook:'https://default5e09d88bd125453ea02e1920a11edd.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/2b77883e4aa54773b5f95ca61a2b230a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=f6-0_YehvEhX8oWEXgpFjat2_Ze9wxwB0LuTNO8LoEk',
   xl_url:'https://blendgroupin-my.sharepoint.com/:x:/g/personal/mounika_kolluru_blendgroup_in/IQD-7_aeYedKSLR8XJQsin_wAegWtdIrkyjMBAfcdkH0JRk?e=MeaoD1',
@@ -910,6 +911,17 @@ function doSubmit(){
   notifyBtns.push(teamsBtn(fullEM,nm,rLines,'Send Confirmation to '+nm));
 
   G('S_NUM').textContent=id;
+  // Show ERP channel button after render
+  setTimeout(function(){
+    var notifyDiv=document.getElementById('S_NOTIFY');
+    if(notifyDiv&&(t.assign==='Unassigned'||!t.assign||aNames==='Unassigned')){
+      var chBtn=document.createElement('div');
+      chBtn.style.cssText='margin-top:10px;padding:10px;background:#EEF2FF;border-radius:8px;text-align:center';
+      chBtn.innerHTML='<div style="font-size:12px;color:#6264A7;font-weight:700;margin-bottom:8px">Ticket posted to ERP Tickets channel</div>'
+        +'<a href="https://teams.microsoft.com/l/channel/19%3Ax4R7MXy1VczBK9Nfm5WX81TI5Rkhrvu1oLfXykPEeKc1%40thread.tacv2/ERP%20Tickets?groupId=f21e4d84-9375-4789-9be4-153e8d873ac0&tenantId=5e09d88b-d125-453e-a02e-1920a11eddfb" target="_blank" style="display:inline-block;padding:8px 20px;background:#6264A7;color:#fff;border-radius:5px;font-size:13px;font-weight:600;text-decoration:none">Open ERP Tickets Channel &rarr;</a>';
+      notifyDiv.parentNode.insertBefore(chBtn,notifyDiv);
+    }
+  },300);
   G('S_META').innerHTML='<table style="width:100%;font-size:12px;border-collapse:collapse">'
     +'<tr><td style="padding:4px 8px;color:#605E5C">Category</td><td style="padding:4px 8px;font-weight:700">'+t.cat+' — '+t.sub+'</td>'
     +'<td style="padding:4px 8px;color:#605E5C">Priority</td><td style="padding:4px 8px;font-weight:700">'+t.prio+'</td></tr>'
@@ -1229,6 +1241,13 @@ function saveCfg(){
   if(G('CFG_DOMAIN')){CFG.allowed_domain=G('CFG_DOMAIN').value.trim().toLowerCase().replace(/^@/,'');}
   if(G('CFG_SP_SITE'))CFG.sp_site=G('CFG_SP_SITE').value.trim().replace(/\/+$/,'');
   if(G('CFG_SP_LIST'))CFG.sp_list=G('CFG_SP_LIST').value.trim()||'BlendERP_Tickets';
+  // Save new password if entered
+  var newPw=G('CFG_PW')?G('CFG_PW').value.trim():'';
+  if(newPw&&newPw.length>=6){
+    CFG.pass=newPw;
+    localStorage.setItem('blend_admin_pass',newPw);
+    showToast('Password updated successfully','ok');
+  }
   persistCfg();showToast('Settings saved','ok');closeCfg();
 }
 function testFlow(){
