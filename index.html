@@ -748,48 +748,64 @@ function cpMsg(bid){
 function callFlowEvent(eventType,payload){
   if(!payload)payload={};
   var webhookUrl=CFG.teams_webhook||localStorage.getItem('blend_cfg_tw')||'';
-  if(!webhookUrl)return;
+  if(!webhookUrl){console.warn('No Teams webhook URL');return;}
   var p=payload;
-  var icons={'New Ticket':'🎫','Updated':'✏️','Resolved':'✅','Closed':'🔒','Reminder':'⏰'};
-  var ic=icons[eventType]||'📌';
+  
+  // Simple Adaptive Card - plain text, no unicode escapes
+  var title=eventType+' - Ticket #'+(p.ticketId||'');
   var card={
     "type":"message",
-    "attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","contentUrl":null,"content":{
-      "type":"AdaptiveCard","version":"1.2",
-      "body":[
-        {"type":"TextBlock","size":"Large","weight":"Bolder","text":ic+" "+eventType+" — Ticket #"+(p.ticketId||''),"wrap":true},
-        {"type":"FactSet","facts":[
-          {"title":"Subject","value":(p.subject||'-')},
-          {"title":"Category","value":(p.category||'-')+(p.subcategory?' — '+p.subcategory:'')},
-          {"title":"Priority","value":(p.priority||'-')},
-          {"title":"Status","value":(p.status||'Open')},
-          {"title":"Raised By","value":(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')},
-          {"title":"Assigned To","value":(p.assigneeName||'Unassigned')},
-          {"title":"Target Date","value":(p.targetDate||'Not set')},
-          {"title":"Description","value":(p.description||'-').substring(0,200)}
-        ]}
-      ],
-      "actions":[
-        {"type":"Action.OpenUrl","title":"View Ticket","url":"https://blendsupport.github.io/erp/"},
-        {"type":"Action.OpenUrl","title":"Mark Resolved","url":"https://blendsupport.github.io/erp/?resolve="+(p.ticketId||'')},
-        {"type":"Action.OpenUrl","title":"Set Target Date","url":"https://blendsupport.github.io/erp/?target="+(p.ticketId||'')}
-      ]
-    }}]
+    "attachments":[{
+      "contentType":"application/vnd.microsoft.card.adaptive",
+      "contentUrl":null,
+      "content":{
+        "type":"AdaptiveCard",
+        "version":"1.2",
+        "body":[
+          {
+            "type":"TextBlock",
+            "size":"Large",
+            "weight":"Bolder",
+            "text":title,
+            "wrap":true
+          },
+          {
+            "type":"FactSet",
+            "facts":[
+              {"title":"Subject","value":String(p.subject||'-')},
+              {"title":"Category","value":String(p.category||'-')+(p.subcategory?' - '+p.subcategory:'')},
+              {"title":"Priority","value":String(p.priority||'-')},
+              {"title":"Status","value":String(p.status||'Open')},
+              {"title":"Raised By","value":String(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')},
+              {"title":"Assigned To","value":String(p.assigneeName||'Unassigned')},
+              {"title":"Target Date","value":String(p.targetDate||'Not set')}
+            ]
+          }
+        ],
+        "actions":[
+          {"type":"Action.OpenUrl","title":"View Ticket","url":"https://blendsupport.github.io/erp/"},
+          {"type":"Action.OpenUrl","title":"Mark Resolved","url":"https://blendsupport.github.io/erp/?resolve="+(p.ticketId||'')},
+          {"type":"Action.OpenUrl","title":"Set Target Date","url":"https://blendsupport.github.io/erp/?target="+(p.ticketId||'')}
+        ]
+      }
+    }]
   };
-  console.log('Sending to Teams webhook:', webhookUrl.substring(0,60));
-  console.log('Card payload:', JSON.stringify(card).substring(0,200));
+  
+  console.log('Teams webhook firing to:',webhookUrl.substring(0,60));
+  
   fetch(webhookUrl,{
     method:'POST',
     mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(card)
   }).then(function(){
-    console.log('Teams webhook: request sent (no-cors mode)');
+    console.log('Teams webhook: sent successfully');
     showToast('Teams notification sent','ok');
   }).catch(function(e){
-    console.error('Teams webhook failed:',e.message);
+    console.error('Teams webhook error:',e.message);
   });
 }
+
 
 function callFlowEvent(url,payload){
   if(!url){
