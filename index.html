@@ -940,9 +940,15 @@ function doSubmit(){
     +(tdVal?'<tr><td style="padding:4px 8px;color:#605E5C">Target Date</td><td style="padding:4px 8px;font-weight:700;color:#D97706" colspan="3">'+fmt(tdVal)+'</td></tr>':'')
     +(attsSnap.length?'<tr><td style="padding:4px 8px;color:#605E5C">Attachments</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+attsSnap.map(function(a){return'<a href="'+a.dataURL+'" download="'+a.name+'" style="color:#6264A7;margin-right:8px">📎 '+a.name+'</a>';}).join('')+'</td></tr>':'')
     +'</table>';
-  G('S_MSG').innerHTML='<div style="font-weight:700;margin-bottom:8px;color:#3730A3">📨 Notify via Teams</div>'
-    +'<div style="font-size:11px;color:#605E5C;margin-bottom:10px">Click to open Teams chat. Copy if Teams does not open.</div>'
-    +notifyBtns.join('');
+  G('S_MSG').innerHTML=
+    '<div style="margin-bottom:12px;padding:12px;background:#EEF2FF;border-radius:8px;text-align:center">'
+    +'<button onclick="sendToERPChannel()" id="BTN_SEND_ERP" style="background:#6264A7;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:block;width:100%;margin-bottom:6px">'
+    +'\uD83D\uDCE2 Send to ERP Tickets Channel</button>'
+    +'<div style="font-size:11px;color:#6264A7">Notify admin team in Microsoft Teams</div>'
+    +'</div>'
+    +(notifyBtns.length
+      ?'<div style="font-weight:700;margin-bottom:6px;color:#3730A3;font-size:12px">Also notify assignee:</div>'+notifyBtns.join('')
+      :'');
   if(G('S_SP_STATUS')&&!CFG.xl_url)G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">Saving to OneDrive Excel...</span>';
   if(G('S_SP_STATUS')&&CFG.xl_url)G('S_SP_STATUS').innerHTML='<span style="color:#16a34a;font-size:12px">\u2713 Saving to OneDrive Excel...</span>';
 
