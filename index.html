@@ -748,97 +748,94 @@ function cpMsg(bid){
 // ══ TEAMS WEBHOOK ══
 function callFlowEvent(eventType,payload){
   if(!payload)payload={};
-  var webhookUrl=CFG.teams_webhook||localStorage.getItem('blend_cfg_tw')||'';
-  if(!webhookUrl){console.warn('No Teams webhook URL');return;}
   var p=payload;
-  
-  // Simple Adaptive Card - plain text, no unicode escapes
   var title=eventType+' - Ticket #'+(p.ticketId||'');
-  var card={
-    "type":"message",
-    "attachments":[{
-      "contentType":"application/vnd.microsoft.card.adaptive",
-      "contentUrl":null,
-      "content":{
-        "type":"AdaptiveCard",
-        "version":"1.2",
-        "body":[
-          {
-            "type":"TextBlock",
-            "size":"Large",
-            "weight":"Bolder",
-            "text":title,
-            "wrap":true
-          },
-          {
-            "type":"FactSet",
-            "facts":[
-              {"title":"Subject","value":String(p.subject||'-')},
-              {"title":"Category","value":String(p.category||'-')+(p.subcategory?' - '+p.subcategory:'')},
-              {"title":"Priority","value":String(p.priority||'-')},
-              {"title":"Status","value":String(p.status||'Open')},
-              {"title":"Raised By","value":String(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')},
-              {"title":"Assigned To","value":String(p.assigneeName||'Unassigned')},
-              {"title":"Target Date","value":String(p.targetDate||'Not set')}
-            ]
-          }
-        ],
-        "actions":[
-          {"type":"Action.OpenUrl","title":"View Ticket","url":"https://blendsupport.github.io/erp/"},
-          {"type":"Action.OpenUrl","title":"Mark Resolved","url":"https://blendsupport.github.io/erp/?resolve="+(p.ticketId||'')},
-          {"type":"Action.OpenUrl","title":"Set Target Date","url":"https://blendsupport.github.io/erp/?target="+(p.ticketId||'')}
-        ]
+  var appUrl='https://blendsupport.github.io/erp/';
+  
+  // Build HTML message for Teams channel
+  var msgHtml='<h3>'+title+'</h3>'
+    +'<table>'
+    +'<tr><td><b>Subject</b></td><td>'+(p.subject||'-')+'</td></tr>'
+    +'<tr><td><b>Category</b></td><td>'+(p.category||'-')+(p.subcategory?' - '+p.subcategory:'')+'</td></tr>'
+    +'<tr><td><b>Priority</b></td><td>'+(p.priority||'-')+'</td></tr>'
+    +'<tr><td><b>Status</b></td><td>'+(p.status||'Open')+'</td></tr>'
+    +'<tr><td><b>Raised By</b></td><td>'+(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')+'</td></tr>'
+    +'<tr><td><b>Assigned To</b></td><td>'+(p.assigneeName||'Unassigned')+'</td></tr>'
+    +'<tr><td><b>Target Date</b></td><td>'+(p.targetDate||'Not set')+'</td></tr>'
+    +'</table>'
+    +'<p>'
+    +'<a href="'+appUrl+'">View Ticket</a> | '
+    +'<a href="'+appUrl+'?resolve='+(p.ticketId||'')+'">Mark Resolved</a> | '
+    +'<a href="'+appUrl+'?target='+(p.ticketId||'')+'">Set Target Date</a>'
+    +'</p>';
+
+  // Get Graph token with Teams permission
+  function postToChannel(tok){
+    var url='https://graph.microsoft.com/v1.0/teams/f21e4d84-9375-4789-9be4-153e8d873ac0/channels/19:x4R7MXy1VczBK9Nfm5WX81TI5Rkhrvu1oLfXykPEeKc1@thread.tacv2/messages';
+    fetch(url,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({body:{contentType:'html',content:msgHtml}})
+    }).then(function(r){
+      if(r.ok){
+        console.log('Posted to ERP Tickets channel');
+        showToast('Posted to ERP Tickets channel','ok');
+      }else{
+        r.text().then(function(t){console.error('Teams post error:',t.slice(0,200));});
       }
-    }]
-  };
-  
-  console.log('Teams webhook firing to:',webhookUrl.substring(0,60));
-  
-  fetch(webhookUrl,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(card)
-  }).then(function(){
-    console.log('Teams webhook: sent successfully');
-    showToast('Teams notification sent','ok');
-  }).catch(function(e){
-    console.error('Teams webhook error:',e.message);
-  });
-}
-
-
-function callFlowEvent(url,payload){
-  if(!url){
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ OneDrive not configured. Go to Admin → ⚙ Settings → paste your Power Automate flow URLs.</span>');
-    return;
+    }).catch(function(e){console.error('Teams Graph error:',e.message);});
   }
-  setSPInd('...');
-  // Clean the payload — remove undefined/null values, trim strings
-  var clean={};
-  Object.keys(payload).forEach(function(k){
-    var v=payload[k];
-    if(v===undefined||v===null)v='';
-    if(typeof v==='string')v=v.trim();
-    clean[k]=v;
-  });
-  fetch(url,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(clean)
-  })
-  .then(function(){
-    // no-cors always resolves — PA received the data
-    setSPInd('ok');
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-ok">✓ Sent to OneDrive Excel</span>');
-  })
-  .catch(function(err){
-    setSPInd('err');
-    console.error('Flow error:',err);
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-err">✗ Flow call failed — check URL in Settings. Error: '+err.message+'</span>');
-  });
-}
+  
+  // Get token with ChannelMessage.Send scope
+  function getTeamsToken(){
+    if(!window._msal){
+      if(typeof msal==='undefined'){
+        var s=document.createElement('script');
+        s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
+        s.onload=function(){
+          window._msal=new msal.PublicClientApplication({
+            auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',redirectUri:window.location.origin+window.location.pathname},
+            cache:{cacheLocation:'sessionStorage'}
+          });
+          getTeamsToken();
+        };
+        document.head.appendChild(s);
+        return;
+      }
+      window._msal=new msal.PublicClientApplication({
+        auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',redirectUri:window.location.origin+window.location.pathname},
+        cache:{cacheLocation:'sessionStorage'}
+      });
+    }
+    var accs=window._msal.getAllAccounts();
+    var req={scopes:['https://graph.microsoft.com/ChannelMessage.Send']};
+    if(accs.length){
+      req.account=accs[0];
+      window._msal.acquireTokenSilent(req)
+        .then(function(r){postToChannel(r.accessToken);})
+        .catch(function(){
+          window._msal.acquireTokenPopup(req)
+            .then(function(r){postToChannel(r.accessToken);})
+            .catch(function(e){console.error('Teams token error:',e.message);});
+        });
+    }else{
+      window._msal.acquireTokenPopup(req)
+        .then(function(r){postToChannel(r.accessToken);})
+        .catch(function(e){console.error('Teams token error:',e.message);});
+    }
+  }
+  
+  getTeamsToken();
+  
+  // Also try old webhook URL as fallback
+  var webhookUrl=CFG.teams_webhook||localStorage.getItem('blend_cfg_tw')||'';
+  if(webhookUrl){
+    var simpleCard={"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","contentUrl":null,"content":{"type":"AdaptiveCard","version":"1.2","body":[{"type":"TextBlock","size":"Large","weight":"Bolder","text":title,"wrap":true},{"type":"FactSet","facts":[{"title":"Subject","value":String(p.subject||'-')},{"title":"Priority","value":String(p.priority||'-')},{"title":"Raised By","value":String(p.raisedBy||'-')},{"title":"Assigned To","value":String(p.assigneeName||'Unassigned')}]}]}}]}};
+    fetch(webhookUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(simpleCard)});
+  }
+
+
+
 
 // ══ SUBMIT NEW TICKET ══
 function doSubmit(){
