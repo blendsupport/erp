@@ -763,68 +763,65 @@ function cpMsg(bid){
 // ══ TEAMS WEBHOOK ══
 function callFlowEvent(eventType,payload){
   if(!payload)payload={};
-  if(!CFG.teams_webhook)return;
+  var webhookUrl=CFG.teams_webhook||localStorage.getItem('blend_cfg_tw')||'';
+  if(!webhookUrl)return;
+  CFG.teams_webhook=webhookUrl;
   var p=payload;
-  var icons={'New Ticket':'🎫','Updated':'✏️','Resolved':'✅','Closed':'🔒','Reminder':'⏰'};
-  var ic=icons[eventType]||'📌';
-  var colors={'Urgent':'attention','High':'warning','Medium':'good','Low':'accent'};
-  var col=colors[p.priority]||'accent';
-  var appUrl='https://blendsupport.github.io/erp/';
-  
-  // Teams Workflows webhook requires Adaptive Card wrapped in message format
+  var ic={'New Ticket':'\uD83C\uDFAB','Updated':'\u270F\uFE0F','Resolved':'\u2705','Closed':'\uD83D\uDD12','Reminder':'\u23F0'}[eventType]||'\uD83D\uDCCC';
+
+  // Teams Workflows webhook — Adaptive Card v1.2 format
   var card={
     "type":"message",
     "attachments":[{
       "contentType":"application/vnd.microsoft.card.adaptive",
+      "contentUrl":null,
       "content":{
-        "$schema":"http://adaptivecards.io/schemas/adaptive-card.json",
         "type":"AdaptiveCard",
-        "version":"1.4",
+        "version":"1.2",
         "body":[
           {
             "type":"TextBlock",
-            "text":ic+" **"+eventType+"** — Ticket #"+(p.ticketId||''),
-            "weight":"bolder",
-            "size":"large",
-            "color":col,
+            "size":"Large",
+            "weight":"Bolder",
+            "text":ic+" "+eventType+" \u2014 Ticket #"+(p.ticketId||''),
             "wrap":true
           },
           {
             "type":"FactSet",
             "facts":[
-              {"title":"Subject","value":p.subject||'-'},
-              {"title":"Category","value":(p.category||'-')+(p.subcategory?' — '+p.subcategory:'')},
-              {"title":"Priority","value":p.priority||'-'},
-              {"title":"Status","value":p.status||'Open'},
-              {"title":"Raised By","value":(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')},
-              {"title":"Assigned To","value":p.assigneeName||'Unassigned'},
-              {"title":"Target Date","value":p.targetDate||'Not set'},
-              {"title":"Description","value":(p.description||'-').substring(0,300)}
+              {"title":"\uD83D\uDCCC Subject","value":(p.subject||'-')},
+              {"title":"\uD83D\uDCC2 Category","value":(p.category||'-')+(p.subcategory?' \u2014 '+p.subcategory:'')},
+              {"title":"\uD83D\uDD34 Priority","value":(p.priority||'-')},
+              {"title":"\uD83D\uDFE2 Status","value":(p.status||'Open')},
+              {"title":"\uD83D\uDC64 Raised By","value":(p.raisedBy||'-')},
+              {"title":"\uD83D\uDCF1 Mobile","value":(p.mobile||p.requesterMobile||'-')},
+              {"title":"\uD83D\uDCCB Assigned To","value":(p.assigneeName||'Unassigned')},
+              {"title":"\uD83D\uDCC5 Target Date","value":(p.targetDate||'Not set')}
             ]
           }
         ],
         "actions":[
           {
             "type":"Action.OpenUrl",
-            "title":"🔗 View Ticket",
-            "url":appUrl
+            "title":"\uD83D\uDD17 View Ticket",
+            "url":"https://blendsupport.github.io/erp/"
           },
           {
             "type":"Action.OpenUrl",
-            "title":"✅ Mark Resolved",
-            "url":appUrl+"?resolve="+(p.ticketId||'')
+            "title":"\u2705 Mark Resolved",
+            "url":"https://blendsupport.github.io/erp/?resolve="+(p.ticketId||'')
           },
           {
             "type":"Action.OpenUrl",
-            "title":"📅 Set Target Date",
-            "url":appUrl+"?target="+(p.ticketId||'')
+            "title":"\uD83D\uDCC5 Set Target Date",
+            "url":"https://blendsupport.github.io/erp/?target="+(p.ticketId||'')
           }
         ]
       }
     }]
   };
-  
-  fetch(CFG.teams_webhook,{
+
+  fetch(webhookUrl,{
     method:'POST',
     mode:'no-cors',
     headers:{'Content-Type':'application/json'},
@@ -833,801 +830,33 @@ function callFlowEvent(eventType,payload){
 }
 
 
-function callFlowEvent(url,payload){
+function testFlows(){testWebhook();}
+function testWebhook(){
+  var url=CFG.teams_webhook||localStorage.getItem('blend_cfg_tw')||'';
   if(!url){
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ OneDrive not configured. Go to Admin → ⚙ Settings → paste your Power Automate flow URLs.</span>');
-    return;
+    alert('No Teams Webhook URL saved!\n\nGo to Settings \u2192 paste the URL from:\nTeams \u2192 ERP Tickets \u2192 ... \u2192 Workflows \u2192 Copy webhook link');
+    openCfg();return;
   }
-  setSPInd('...');
-  // Clean the payload — remove undefined/null values, trim strings
-  var clean={};
-  Object.keys(payload).forEach(function(k){
-    var v=payload[k];
-    if(v===undefined||v===null)v='';
-    if(typeof v==='string')v=v.trim();
-    clean[k]=v;
-  });
-  fetch(url,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(clean)
-  })
+  var testCard={
+    "type":"message",
+    "attachments":[{
+      "contentType":"application/vnd.microsoft.card.adaptive",
+      "contentUrl":null,
+      "content":{
+        "type":"AdaptiveCard",
+        "version":"1.2",
+        "body":[
+          {"type":"TextBlock","size":"Large","weight":"Bolder","text":"\u2705 Blend ERP Support \u2014 Webhook Test","wrap":true},
+          {"type":"TextBlock","text":"If you see this card in ERP Tickets channel, the webhook is working correctly!","wrap":true,"color":"good"}
+        ]
+      }
+    }]
+  };
+  fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(testCard)})
   .then(function(){
-    // no-cors always resolves — PA received the data
-    setSPInd('ok');
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-ok">✓ Sent to OneDrive Excel</span>');
-  })
-  .catch(function(err){
-    setSPInd('err');
-    console.error('Flow error:',err);
-    G('S_SP_STATUS')&&(G('S_SP_STATUS').innerHTML='<span class="sp-err">✗ Flow call failed — check URL in Settings. Error: '+err.message+'</span>');
-  });
-}
-
-// ══ SUBMIT NEW TICKET ══
-function doSubmit(){
-  var sj=GV('F_SJ'),nm=GV('F_NM'),mb=GV('F_MB'),em=GV('F_EM');
-  var pe=GV('F_AE');
-  if(pe&&pe.indexOf('@')>-1&&!selAsgn.some(function(a){return a.email===pe;})){
-    var pn=GV('F_AN')||allPeople().filter(function(s){return s.email.toLowerCase()===pe.toLowerCase();})[0]?.name||pe.split('@')[0].split('.').map(function(p){return p.charAt(0).toUpperCase()+p.slice(1);}).join(' ');
-    selAsgn.push({name:pn,email:pe});saveCustom(pn,pe);renderChips();
-  }
-  if(!sj){showToast('Please enter a Subject','warn');return;}
-  if(!nm){showToast('Please enter your Full Name','warn');return;}
-  if(!mb||mb.length<10){showToast('Please enter a valid 10-digit Mobile','warn');return;}
-  if(!em||em.indexOf('@')<0){showToast('Please enter your Email','warn');return;}
-  // Assignee is optional — default to Unassigned if not set
-  if(!selAsgn.length){
-    selAsgn=[{name:'Unassigned',email:''}];
-  }
-  var fullEM=em.indexOf('@')>-1?em:em+'@blendgroup.in';
-  var fullMB='+91-'+mb;
-  var tdVal=GV('F_TD')||'';
-  var id=nid();
-  var aNames=selAsgn.map(function(a){return a.name;}).join(', ');
-  var aEmails=selAsgn.map(function(a){return a.email;}).join(', ');
-  var attsSnap=pendingAtts.slice();
-  var t={id:id,cat:G('F_CAT').value,sub:G('F_SUB').value,subj:sj,by:nm,mob:fullMB,
-    email:fullEM,prio:G('F_PR').value,status:'Open',
-    assign:aNames,aEmail:aEmails,assignees:selAsgn.slice(),
-    raisedOn:today(),td:tdVal,desc:GV('F_DS'),closedOn:'',
-    atts:attsSnap,source:'new'};
-  tkts.unshift(t);saveStore();
-  if(CFG.xl_url&&typeof syncOneToExcel==='function')syncOneToExcel(t);
-  if(CFG.sp_site&&typeof spSaveTicket==='function')spSaveTicket(t,null);
-  // For unassigned tickets - auto-post to ERP channel webhook
-  if(t.assign==='Unassigned'||!t.assign){
-    callFlowEvent('New Ticket',{
-      ticketId:id,subject:sj,category:t.cat,subcategory:t.sub,
-      priority:t.prio,status:'Open',raisedBy:nm,
-      requesterEmail:fullEM,mobile:fullMB,
-      assigneeName:'Unassigned',assigneeEmail:'',
-      targetDate:tdVal?fmt(tdVal):'',
-      raisedOn:fmt(t.raisedOn),
-      description:t.desc||''
-    });
-  }
-  logM('New Ticket',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
-
-  // Power Automate / OneDrive Excel
-  var payload={ticketId:id,subject:sj,category:t.cat,subcategory:t.sub,priority:t.prio,status:'Open',
-    raisedBy:nm,raisedOn:t.raisedOn,targetDate:tdVal||'',requesterEmail:fullEM,requesterMobile:fullMB,
-    assigneeName:aNames,assigneeEmail:aEmails,description:t.desc||'',
-    attachmentCount:attsSnap.length,source:'new'};
-  callFlowEvent('New Ticket',payload);
-
-  // Teams notify buttons
-  var notifyBtns=[];
-  
-  // Unassigned — add ERP Tickets channel button
-  if(!t.assign||t.assign==='Unassigned'||selAsgn[0].name==='Unassigned'){
-    notifyBtns.push('<a href="https://teams.microsoft.com/l/channel/19%3Ax4R7MXy1VczBK9Nfm5WX81TI5Rkhrvu1oLfXykPEeKc1%40thread.tacv2/ERP%20Tickets?groupId=f21e4d84-9375-4789-9be4-153e8d873ac0&tenantId=5e09d88b-d125-453e-a02e-1920a11eddfb" target="_blank" class="btn b-blue b-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin:4px">&#128226; Open ERP Tickets Channel</a>');
-  }
-  
-  selAsgn.forEach(function(a){
-    if(a.name==='Unassigned'||!a.email)return; // Skip unassigned
-    var lines=['Hi '+a.name+', a new ERP support ticket has been assigned to you.','',
-      '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
-      '🔴 Priority: '+t.prio,'👤 Raised By: '+nm+' ('+fullEM+')','📱 Mobile: '+fullMB,
-      '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):'')];
-    if(t.desc)lines.push('📝 Description: '+t.desc);
-    lines.push('','Please action at the earliest.','— Blend ERP Support');
-    notifyBtns.push(teamsBtn(a.email,a.name,lines,'Notify '+a.name));
-  });
-  var rLines=['Hi '+nm+', your ERP support ticket has been raised successfully.','',
-    '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
-    '🔴 Priority: '+t.prio,'👤 Assigned To: '+aNames,
-    '📅 Raised On: '+fmt(t.raisedOn)+(tdVal?'\n🗓 Target Date: '+fmt(tdVal):''),
-    '','You can track your ticket status anytime using your ticket number.','— Blend ERP Support'];
-  notifyBtns.push(teamsBtn(fullEM,nm,rLines,'Send Confirmation to '+nm));
-
-  G('S_NUM').textContent=id;
-  G('S_META').innerHTML='<table style="width:100%;font-size:12px;border-collapse:collapse">'
-    +'<tr><td style="padding:4px 8px;color:#605E5C">Category</td><td style="padding:4px 8px;font-weight:700">'+t.cat+' — '+t.sub+'</td>'
-    +'<td style="padding:4px 8px;color:#605E5C">Priority</td><td style="padding:4px 8px;font-weight:700">'+t.prio+'</td></tr>'
-    +'<tr><td style="padding:4px 8px;color:#605E5C">Assigned To</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+aNames+'</td></tr>'
-    +(tdVal?'<tr><td style="padding:4px 8px;color:#605E5C">Target Date</td><td style="padding:4px 8px;font-weight:700;color:#D97706" colspan="3">'+fmt(tdVal)+'</td></tr>':'')
-    +(attsSnap.length?'<tr><td style="padding:4px 8px;color:#605E5C">Attachments</td><td style="padding:4px 8px;font-weight:700" colspan="3">'+attsSnap.map(function(a){return'<a href="'+a.dataURL+'" download="'+a.name+'" style="color:#6264A7;margin-right:8px">📎 '+a.name+'</a>';}).join('')+'</td></tr>':'')
-    +'</table>';
-  G('S_MSG').innerHTML='<div style="font-weight:700;margin-bottom:8px;color:#3730A3">📨 Notify via Teams</div>'
-    +'<div style="font-size:11px;color:#605E5C;margin-bottom:10px">Click to open Teams chat. Copy if Teams does not open.</div>'
-    +notifyBtns.join('');
-  if(G('S_SP_STATUS')&&!CFG.flow_new)G('S_SP_STATUS').innerHTML='<span style="color:#888;font-size:11px">ℹ Configure OneDrive in Admin → ⚙ Settings to auto-save tickets to your Excel file.</span>';
-
-  pendingAtts=[];G('F_ATTLIST').innerHTML='';
-  selAsgn=[];renderChips();
-  G('FCARD').style.display='none';G('SCARD').style.display='block';window.scrollTo(0,0);
-}
-
-function doReset(){
-  ['F_SJ','F_DS','F_MB','F_AN','F_AE','F_TD'].forEach(function(id){var e=G(id);if(e)e.value='';});
-  pendingAtts=[];if(G('F_ATTLIST'))G('F_ATTLIST').innerHTML='';
-  selAsgn=[];renderChips();G('F_PR').value='Medium';
-  if(!CU.email){var fn=G('F_NM');if(fn)fn.value='';var fe=G('F_EM');if(fe)fe.value='';}
-  G('FCARD').style.display='block';G('SCARD').style.display='none';
-}
-
-// ══ MY TICKETS ══
-function renderMy(){
-  var el=G('MY_LIST');
-  var rawEM=GV('F_EM')||'';
-  var em=CU.email||(rawEM.indexOf('@')>-1?rawEM:(rawEM?rawEM+'@blendgroup.in':''));
-  var mine=em?tkts.filter(function(t){return t.email&&t.email.toLowerCase()===em.toLowerCase();}):[];
-  if(!mine.length){el.innerHTML='<div class="empty">'+(CU.email?'No tickets raised yet by <b>'+CU.name+'</b>.':'Enter your email in the New Ticket form first.')+'<br><br><button class="btn b-blue" onclick="goTab(1)" style="padding:8px 20px">＋ Raise First Ticket</button></div>';return;}
-  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'],html='';
-  mine.forEach(function(t){
-    var ci=SO.indexOf(t.status);var lc=t.prio==='Urgent'?'urg':t.status==='Closed'?'cls':'';
-    html+='<div class="tkt-card '+lc+'">';
-    html+='<table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase;margin-bottom:2px">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' — '+t.sub+'</div></td><td style="text-align:right;vertical-align:top">'+sbadge(t.status)+'<br>'+pbadge(t.prio)+'</td></tr></table>';
-    html+='<table style="width:100%;background:#F8F9FF;border-radius:5px;padding:9px;margin-bottom:10px;font-size:12px"><tr>'
-      +'<td><div style="color:#605E5C;font-size:11px">Raised On</div><div style="font-weight:700">'+fmt(t.raisedOn)+'</div></td>'
-      +'<td><div style="color:#605E5C;font-size:11px">Target</div><div style="font-weight:700;color:'+(t.td?'#D97706':'#AAA')+'">'+fmt(t.td)+'</div></td>'
-      +'<td><div style="color:#605E5C;font-size:11px">Assigned To</div><div style="font-weight:700">'+t.assign+'</div></td>'
-      +'</tr></table>';
-    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';
-      html+='<table style="margin-bottom:3px"><tr><td style="width:26px;vertical-align:top"><div class="dot '+(done?'d-done':act?'d-act':'d-idle')+'">'+(done?'✓':act?'●':'○')+'</div></td><td style="vertical-align:top;padding-left:7px;padding-top:2px"><div style="font-size:12px;font-weight:'+(act?'700':'400')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</div></td></tr></table>';
-      if(si<SO.length-1)html+='<div style="width:2px;height:5px;background:#E1E1E1;margin-left:11px"></div>';
-    });
-    if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
-    if(t.atts&&t.atts.length)html+=attListHtml(t.atts);
-    html+='</div>';
-  });
-  el.innerHTML=html;
-}
-
-// ══ TRACK ══
-function doTrack(){
-  var q=(GV('TRK_Q')||'').toLowerCase().replace(/^0+/,'');
-  var el=G('TRK_RES');if(!q){el.innerHTML='';return;}
-  var isNum=/^[0-9]+$/.test(q),isEmail=q.indexOf('@')>0;var found=tkts.filter(function(t){if(isNum)return t.id.replace(/^0+/,'')==q||String(t.id)==q;if(isEmail)return t.email.toLowerCase()===q;return q.length>2&&(t.subj.toLowerCase().indexOf(q)>=0||(t.desc&&t.desc.toLowerCase().indexOf(q)>=0));});
-  if(!found.length){el.innerHTML='<div style="padding:20px;text-align:center;background:#F5F5F5;border-radius:8px;color:#605E5C">No ticket found for <b>'+q+'</b>. Try your email or ticket number.</div>';return;}
-  var SO=['Open','In Progress','On Hold','Pending Closure','Closed'],html='';
-  found.forEach(function(t){
-    var ci=SO.indexOf(t.status);
-    html+='<div class="tkt-card"><table style="width:100%;margin-bottom:10px"><tr><td><div style="font-size:10px;color:#605E5C;font-weight:700;text-transform:uppercase;margin-bottom:2px">Ticket #'+t.id+'</div><div style="font-size:15px;font-weight:700;color:#252424">'+t.subj+'</div><div style="font-size:12px;color:#605E5C;margin-top:2px">'+t.cat+' — '+t.sub+'</div></td><td style="text-align:right;vertical-align:top">'+sbadge(t.status)+'<div style="margin-top:4px">'+pbadge(t.prio)+'</div></td></tr></table>';
-    html+='<table style="width:100%;background:#F8F9FF;border-radius:5px;padding:9px;margin-bottom:10px;font-size:12px"><tr><td><div style="color:#605E5C;font-size:11px">Raised On</div><div style="font-weight:700">'+fmt(t.raisedOn)+'</div></td><td><div style="color:#605E5C;font-size:11px">Target</div><div style="font-weight:700;color:#D97706">'+fmt(t.td)+'</div></td><td><div style="color:#605E5C;font-size:11px">Assigned To</div><div style="font-weight:700">'+t.assign+'</div></td></tr></table>';
-    SO.forEach(function(s,si){var done=si<ci||(t.status==='Closed'&&si===ci);var act=si===ci&&t.status!=='Closed';
-      html+='<table style="margin-bottom:3px"><tr><td style="width:26px;vertical-align:top"><div class="dot '+(done?'d-done':act?'d-act':'d-idle')+'">'+(done?'✓':act?'●':'○')+'</div></td><td style="vertical-align:top;padding-left:7px;padding-top:2px"><div style="font-size:12px;font-weight:'+(act?'700':'400')+';color:'+(done?'#237B4B':act?'#6264A7':'#AAA')+'">'+s+'</div></td></tr></table>';
-      if(si<SO.length-1)html+='<div style="width:2px;height:5px;background:#E1E1E1;margin-left:11px"></div>';
-    });
-    if(t.status==='Closed')html+='<div style="margin-top:8px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:5px;padding:8px 12px;font-size:12px;color:#237B4B">✓ Closed on '+fmt(t.closedOn||t.raisedOn)+'</div>';
-    if(t.atts&&t.atts.length)html+=attListHtml(t.atts);
-    html+='</div>';
-  });
-  el.innerHTML=html;
-}
-
-// ══ ADMIN ══
-function filtered(){
-  var q=(GV('A_Q')||'').toLowerCase(),fc=GV('A_CAT'),fs=GV('A_ST'),fp=GV('A_PR'),fsr=GV('A_SRC');
-  return tkts.filter(function(t){
-    var matchQ=!q||(t.id+t.subj+(t.by||'')+(t.email||'')+t.cat+(t.assign||'')).toLowerCase().indexOf(q)>=0;
-    var matchC=!fc||t.cat===fc;
-    var matchS=!fs||t.status===fs;
-    var matchP=!fp||t.prio===fp;
-    var matchSrc=!fsr||(fsr==='imported'?t.source==='imported':t.source!=='imported');
-    return matchQ&&matchC&&matchS&&matchP&&matchSrc;
-  });
-}
-function renderAdm(){
-  var list=filtered();
-  var urg=tkts.filter(function(t){return t.prio==='Urgent'&&t.status!=='Closed';}).length;
-  var ub=G('URG_B');ub.textContent='🔴 '+urg+' Urgent';ub.style.display=urg?'inline':'none';
-  var c={Open:0,'In Progress':0,'On Hold':0,'Pending Closure':0,Closed:0,Overdue:0};
-  tkts.forEach(function(t){if(c[t.status]!==undefined)c[t.status]++;var d=diff(t.td);if(t.status!=='Closed'&&d!==null&&d<0)c.Overdue++;});
-  G('SUM_DIV').innerHTML='<div class="sumbar" title="Tickets stored in this browser. Use Sync Excel to see all devices.">'
-    +'<div class="sc"><div class="scv" style="color:#3730A3">'+c.Open+'</div><div class="scl">Open</div></div>'
-    +'<div class="sc"><div class="scv" style="color:#713F12">'+c['In Progress']+'</div><div class="scl">In Progress</div></div>'
-    +'<div class="sc"><div class="scv" style="color:#374151">'+c['On Hold']+'</div><div class="scl">On Hold</div></div>'
-    +'<div class="sc"><div class="scv" style="color:#6B21A8">'+c['Pending Closure']+'</div><div class="scl">Pending</div></div>'
-    +'<div class="sc"><div class="scv" style="color:#237B4B">'+c.Closed+'</div><div class="scl">Closed</div></div>'
-    +'<div class="sc"><div class="scv" style="color:#C4314B">'+c.Overdue+'</div><div class="scl">Overdue</div></div>'
-    +'</div>';
-  var ov=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)!==null&&diff(t.td)<0;});
-  var pend=tkts.filter(function(t){return t.status==='Pending Closure';});
-  var tmr=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)===1;});
-  var ah='';
-  if(ov.length)ah+='<div class="al al-w">⚠ <b>'+ov.length+' overdue:</b> '+ov.map(function(t){return'<b>#'+t.id+'</b>';}).join(', ')+'</div>';
-  if(tmr.length)ah+='<div class="al" style="background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412">⏰ <b>Due Tomorrow:</b> '+tmr.map(function(t){return'#'+t.id+' ('+t.assign+')';}).join(', ')+'</div>';
-  if(pend.length)ah+='<div class="al al-p">🔒 <b>Awaiting closure:</b> '+pend.map(function(t){return'#'+t.id+' ('+t.by+')';}).join(', ')+'</div>';
-  G('ALT_DIV').innerHTML=ah;
-  var tbody=G('ADM_BODY');
-  if(!list.length){tbody.innerHTML='<tr><td colspan="10" class="empty">No tickets match the current filter.</td></tr>';return;}
-  var html='';
-  list.forEach(function(t){
-    var d=diff(t.td),bg='';
-    if(curId===t.id)bg='background:#EEF2FF;';
-    else if(t.status!=='Closed'&&d!==null&&d<0)bg='background:#FEF2F2;';
-    else if(t.status!=='Closed'&&d===1)bg='background:#FFFBEB;';
-    var srcTag=t.source==='imported'?'<span style="font-size:9px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:2px;padding:1px 4px;font-weight:700;display:inline-block;margin-top:2px;line-height:1.4">LEGACY</span>':'';
-    var attIcon=t.atts&&t.atts.length?'<span title="'+t.atts.length+' attachment(s)">📎'+t.atts.length+'</span>':'<span style="color:#ccc">—</span>';
-    var remBadge=(t.status!=='Closed'&&d===1)?'<span class="rem-badge">⏰ tmr</span>':'';
-    html+='<tr style="'+bg+'">'
-      +'<td><span class="tid">'+t.id+'</span><br>'+srcTag+'</td>'
-      +'<td><span class="cpill">'+t.cat+'</span><div style="font-size:10px;color:#888;margin-top:2px">'+t.sub+'</div></td>'
-      +'<td><div style="font-weight:600;font-size:12px;max-width:200px">'+t.subj+'</div></td>'
-      +'<td><div style="font-weight:600;font-size:12px">'+t.by+'</div><div style="font-size:10px;color:#888">'+t.mob+'</div></td>'
-      +'<td>'+pbadge(t.prio)+'</td>'
-      +'<td>'+sbadge(t.status)+'</td>'
-      +'<td><div style="font-weight:600;font-size:11px;max-width:140px">'+t.assign+'</div></td>'
-      +'<td>'+dbadge(t)+remBadge+'<div style="font-size:10px;color:#AAA">'+fmt(t.raisedOn)+'</div></td>'
-      +'<td>'+attIcon+'</td>'
-      +'<td><button class="btn b-blue b-xs" data-tid="'+t.id+'" onclick="openEP(this.dataset.tid)">'+(t.status==='Closed'?'View':'Edit')+'</button></td>'
-      +'</tr>';
-  });
-  tbody.innerHTML=html;
-}
-
-// ══ EDIT PANEL ══
-function openEP(id){
-  var t=tkts.filter(function(x){return x.id===id;})[0];if(!t)return;curId=id;
-  var ic=t.status==='Closed',ip=t.status==='Pending Closure';
-  G('EP_NUM').textContent='#'+id;G('EP_ID').textContent=id;G('EP_RO').textContent=fmt(t.raisedOn);
-  G('EP_TD').value=t.td||'';G('EP_AS').value=t.assign;G('EP_AE').value=t.aEmail||'';
-  G('EP_MB').value=t.mob;G('EP_BY').value=t.by;G('EP_EM').value=t.email||'';
-  G('EP_SJ').value=t.subj;G('EP_DS').value=t.desc||'';
-  if(G('EP_CAT').options.length===0){CK.forEach(function(k){var o=document.createElement('option');o.value=k;o.text=k;G('EP_CAT').appendChild(o);});}
-  G('EP_CAT').value=t.cat;epSub();setTimeout(function(){G('EP_SUB').value=t.sub;},80);
-  G('EP_PR').value=t.prio;G('EP_ST').value=t.status;
-  [G('EP_TD'),G('EP_AS'),G('EP_AE'),G('EP_MB'),G('EP_BY'),G('EP_EM'),G('EP_SJ'),G('EP_DS'),G('EP_CAT'),G('EP_PR'),G('EP_ST')].forEach(function(e){if(e)e.disabled=ic;});
-  // Attachments
-  epAtts=(t.atts||[]).slice();renderEpAtts();
-  G('EP_FILE').disabled=ic;G('EP_FILE').closest('.att-zone').style.display=ic?'none':'';
-  G('BTN_DEL').style.display=ic?'none':'inline-flex';
-  G('BTN_SAV').style.display=ic?'none':'inline-flex';
-  G('BTN_PND').style.display=(ic||ip)?'none':'inline-flex';
-  G('BTN_CC').style.display=ip?'inline-flex':'none';
-  var ep=G('EP_DIV');ep.style.display='block';
-  setTimeout(function(){if(typeof renderEpComments==='function')renderEpComments(id);},50);
-  setTimeout(function(){ep.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
-  renderAdm();
-}
-function closeEP(){curId=null;G('EP_DIV').style.display='none';G('CC_WRAP').style.display='none';epAtts=[];renderAdm();}
-
-function saveTkt(){
-  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
-  var prev={status:t.status,assign:t.assign,td:t.td};
-  t.cat=GV('EP_CAT');t.sub=GV('EP_SUB');t.prio=GV('EP_PR');t.status=GV('EP_ST');
-  t.td=GV('EP_TD');t.assign=GV('EP_AS');t.aEmail=GV('EP_AE');
-  t.by=GV('EP_BY');t.mob=GV('EP_MB');t.email=GV('EP_EM');
-  t.subj=GV('EP_SJ');t.desc=GV('EP_DS');
-  if(epAtts.length)t.atts=epAtts.slice();
-  var chg=[];
-  if(prev.status!==t.status)chg.push('Status → '+t.status);
-  if(prev.assign!==t.assign)chg.push('Assigned → '+t.assign);
-  if(prev.td!==t.td)chg.push('Target → '+fmt(t.td));
-  var chgT=chg.length?chg.join(', '):'Details updated';
-  var nc=typeof getEpComment==='function'?getEpComment():'';if(nc){addCommentToTicket(curId,'Admin',nc);clearEpComment&&clearEpComment();}
-  saveStore();
-  logM('Updated',curId,t.aEmail,'#'+curId+' — '+chgT);
-  callFlowEvent('Updated',{ticketId:curId,subject:t.subj,changes:chgT,status:t.status,priority:t.prio,
-    assigneeName:t.assign,assigneeEmail:t.aEmail,targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
-  var btns='';
-  if(t.aEmail){
-    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
-    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' has been updated.',
-      'Change: '+chgT,'Subject: '+t.subj,t.td?'Target Date: '+fmt(t.td):'',
-      '— Blend ERP Support'],'Notify '+fn+' (Assignee)')+' ';
-  }
-  if(t.email){
-    btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', your Ticket #'+curId+' has been updated.',
-      'Change: '+chgT,t.td?'Target Date: '+fmt(t.td):'','Assigned To: '+t.assign,
-      '— Blend ERP Support'],'Notify '+t.by+' (Requester)');
-  }
-  showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
-  showToast('Ticket #'+curId+' saved','ok');
-  if(CFG.xl_url){var sv=tkts.filter(function(x){return x.id===curId;})[0];if(sv&&typeof syncOneToExcel==='function')syncOneToExcel(sv);}renderAdm();
-}
-
-function markPend(){
-  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
-  t.desc=GV('EP_DS');t.status='Pending Closure';saveStore();
-  logM('Resolved',curId,t.email,'#'+curId+' resolved');
-  callFlowEvent('Resolved',{ticketId:curId,subject:t.subj,status:'Pending Closure',
-    assigneeName:t.assign,assigneeEmail:t.aEmail||'',requesterName:t.by,requesterEmail:t.email||'',
-    category:t.cat,subcategory:t.sub,priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',
-    raisedOn:t.raisedOn,description:t.desc||''});
-  var btns='';
-  if(t.email)btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', Ticket #'+curId+' ('+t.subj+') has been resolved by '+t.assign+'.',
-    'Please confirm you are satisfied so we can close the ticket.','— Blend ERP Support'],'Notify '+t.by+' (Requester)')+' ';
-  if(t.aEmail){
-    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
-    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' is marked Resolved. Awaiting requester confirmation to close.','— Blend ERP Support'],'Notify '+fn+' (Assignee)');
-  }
-  showMbar('💬 Marked resolved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
-  showToast('Marked resolved','ok');closeEP();
-}
-
-function openCC(){G('CC_WRAP').style.display='block';G('CC_EM').value='';G('CC_REM').value='';G('CC_WRAP').scrollIntoView({behavior:'smooth',block:'nearest'});}
-function cancelCC(){G('CC_WRAP').style.display='none';}
-function confirmCC(){
-  if(!curId)return;var t=tkts.filter(function(x){return x.id===curId;})[0];if(!t)return;
-  var em=G('CC_EM').value.trim();
-  if(!em){showToast('Enter requester email','warn');return;}
-  if(t.email&&em.toLowerCase()!==t.email.toLowerCase()){showToast('Email does not match requester on record','warn');return;}
-  var rem=G('CC_REM').value.trim();
-  t.status='Closed';t.closedOn=today();if(rem)t.desc=(t.desc||'')+' | Resolution: '+rem;
-  saveStore();logM('Closed',curId,t.email,'#'+curId+' closed');
-  callFlowEvent('Closed',{ticketId:curId,subject:t.subj,status:'Closed',closedOn:today(),
-    resolution:rem||'Issue resolved',assigneeName:t.assign,assigneeEmail:t.aEmail||'',
-    requesterName:t.by,requesterEmail:t.email||'',category:t.cat,subcategory:t.sub,
-    priority:t.prio,mobile:t.mob||'',targetDate:t.td||'',raisedOn:t.raisedOn,description:t.desc||''});
-  var btns='';
-  if(t.email)btns+=teamsBtn(t.email,t.by,['Hi '+t.by+', your Ticket #'+curId+' is now ✅ CLOSED.',
-    'Resolution: '+(rem||'Issue resolved'),'Thank you for using Blend ERP Support.','— Blend ERP Support'],'Notify '+t.by+' (Requester)')+' ';
-  if(t.aEmail){
-    var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
-    btns+=teamsBtn(fe,fn,['Hi '+fn+', Ticket #'+curId+' has been closed by the requester. No further action needed.','— Blend ERP Support'],'Notify '+fn+' (Assignee)');
-  }
-  showMbar('💬 Ticket closed. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
-  G('CC_WRAP').style.display='none';closeEP();showToast('Ticket #'+curId+' closed','ok');
-}
-
-function delTkt(){
-  if(!curId)return;
-  if(!confirm('Delete ticket #'+curId+'? This cannot be undone.'))return;
-  tkts=tkts.filter(function(x){return x.id!==curId;});saveStore();closeEP();showToast('Deleted','warn');
-}
-
-// ══ REMINDERS (check due-tomorrow tickets, generate Teams notify buttons) ══
-function checkReminders(){
-  var due=tkts.filter(function(t){return t.status!=='Closed'&&diff(t.td)===1;});
-  if(!due.length){showToast('No tickets due tomorrow — all good!','ok');return;}
-  var html='<div style="font-weight:700;margin-bottom:10px;color:#92400E">⏰ Due Tomorrow — Send Reminders ('+due.length+')</div>';
-  due.forEach(function(t){
-    html+='<div style="border:1px solid #FDE68A;border-radius:5px;padding:10px;margin-bottom:8px;background:#FFFBEB">';
-    html+='<div style="font-weight:700;font-size:13px;color:#252424">#'+t.id+' — '+t.subj+'</div>';
-    html+='<div style="font-size:11px;color:#605E5C;margin:4px 0">Assigned: '+t.assign+' | Target: '+fmt(t.td)+'</div>';
-    if(t.aEmail){
-      var fe=t.aEmail.split(',')[0].trim(),fn=t.assign.split(',')[0].trim();
-      html+=teamsBtn(fe,fn,
-        ['⏰ Reminder: Ticket #'+t.id+' is due TOMORROW ('+fmt(t.td)+').',
-         'Subject: '+t.subj,
-         'Please ensure it is resolved or update the target date.',
-         '— Blend ERP Support'],
-        'Remind '+fn);
-    }
-    if(CFG.teams_webhook){
-      html+=' <button class="btn b-sm" data-tid="'+t.id+'" onclick="sendAutoReminder(this.dataset.tid)">&#129302; Auto-send</button>';
-    }
-    html+='</div>';
-  });
-  showMbar(html);window.scrollTo(0,0);
-  // Also trigger Power Automate reminder flow for each
-  if(CFG.teams_webhook){
-    due.forEach(function(t){
-      callFlowEvent(CFG.teams_webhook,{ticketId:t.id,subject:t.subj,assigneeName:t.assign,
-        assigneeEmail:t.aEmail||'',targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
-    });
-  }
-}
-function sendAutoReminder(id){
-  var t=tkts.filter(function(x){return x.id===id;})[0];if(!t||!CFG.teams_webhook)return;
-  callFlowEvent(CFG.teams_webhook,{ticketId:t.id,subject:t.subj,assigneeName:t.assign,
-    assigneeEmail:t.aEmail||'',targetDate:fmt(t.td),requesterName:t.by,requesterEmail:t.email||''});
-  showToast('Reminder sent for #'+t.id,'ok');
-}
-
-// ══ NOTIFICATION LOG ══
-function toggleML(){
-  var v=G('ML_WRAP'),show=v.style.display==='none'||!v.style.display;
-  if(show&&mlog.length){G('ML_INNER').innerHTML=mlog.map(function(m){
-    return'<div style="padding:8px 0;border-bottom:1px solid #F0F0F0;display:flex;gap:8px">'
-      +'<div style="width:26px;height:26px;border-radius:50%;background:#EEF2FF;text-align:center;line-height:26px;font-size:13px;flex-shrink:0">💬</div>'
-      +'<div><span style="font-weight:700;font-size:12px;color:#6264A7">'+m.tp+'</span> <span style="font-size:11px;color:#AAA">#'+m.id+' · '+m.ts+'</span>'
-      +'<div style="font-size:12px;color:#252424">To: <b>'+m.to+'</b></div>'
-      +'<div style="font-size:11px;color:#605E5C">'+m.sb+'</div></div></div>';
-  }).join('');}
-  else if(show)G('ML_INNER').innerHTML='<div class="empty">No notifications yet.</div>';
-  v.style.display=show?'block':'none';
-}
-
-// ══ SETTINGS ══
-function openCfg(){G('CFG_WRAP').style.display='block';loadCfgToPanel();window.scrollTo(0,0);}
-function closeCfg(){G('CFG_WRAP').style.display='none';}
-function loadCfgToPanel(){
-  G('CFG_PW').value='';G('CFG_CNT').value=cnt;
-  if(G('CFG_TW'))G('CFG_TW').value=CFG.teams_webhook||'';
-  if(G('CFG_XL_URL'))G('CFG_XL_URL').value=CFG.xl_url||localStorage.getItem('blend_cfg_xl_url')||'';
-  if(G('CFG_DOMAIN'))G('CFG_DOMAIN').value=CFG.allowed_domain||'blendgroup.in';
-  if(G('CFG_SP_SITE'))G('CFG_SP_SITE').value=CFG.sp_site||'';
-  if(G('CFG_SP_LIST'))G('CFG_SP_LIST').value=CFG.sp_list||'BlendERP_Tickets';
-}
-function changePw(){var p=GV('CFG_PW');if(!p||p.length<4){showToast('Password must be at least 4 characters','warn');return;}CFG.pass=p;persistCfg();G('CFG_PW').value='';showToast('Password updated','ok');}
-function saveCnt(){var v=parseInt(GV('CFG_CNT'));if(isNaN(v)||v<1){showToast('Invalid number','warn');return;}cnt=v;saveStore();showToast('Counter set to '+v,'ok');}
-function saveCfg(){
-  if(G('CFG_TW'))CFG.teams_webhook=G('CFG_TW').value.trim();
-  if(G('CFG_XL_URL')){CFG.xl_url=G('CFG_XL_URL').value.trim();if(CFG.xl_url)localStorage.setItem('blend_cfg_xl_url',CFG.xl_url);}
-  if(G('CFG_DOMAIN')){CFG.allowed_domain=G('CFG_DOMAIN').value.trim().toLowerCase().replace(/^@/,'');}
-  if(G('CFG_SP_SITE'))CFG.sp_site=G('CFG_SP_SITE').value.trim().replace(/\/+$/,'');
-  if(G('CFG_SP_LIST'))CFG.sp_list=G('CFG_SP_LIST').value.trim()||'BlendERP_Tickets';
-  persistCfg();showToast('Settings saved','ok');closeCfg();
-}
-function testFlow(){
-  var url=GV('CFG_F1');
-  if(!url){showToast('Enter the New Ticket Flow URL first','warn');return;}
-  var testPayload={
-    ticketId:'TEST-001',subject:'Test ticket from Blend ERP',category:'IT',subcategory:'Software Bug',
-    priority:'Medium',status:'Open',raisedBy:'Test User',raisedOn:today(),targetDate:'',
-    requesterEmail:'test@blendgroup.in',requesterMobile:'+91-9999999999',
-    assigneeName:'Pavan Thakur',assigneeEmail:'pavan.thakur@blendgroup.in',
-    description:'This is a test payload to verify the flow is receiving data correctly.',
-    attachmentCount:0,source:'test'
-  };
-  // Show exactly what is being sent
-  showMbar('<b>Sending test payload to Power Automate:</b><br><pre style="font-size:10px;background:#1E1E2E;color:#E2E8F0;padding:10px;border-radius:5px;overflow-x:auto;margin-top:8px">'+JSON.stringify(testPayload,null,2)+'</pre><div style="margin-top:8px;font-size:12px;color:#605E5C">Check Power Automate → My flows → BlendERP_NewTicket → Run history to confirm it received this data.</div>');
-  callFlowEvent(url,testPayload);
-  showToast('Test payload sent — check Power Automate run history','ok');
-}
-
-// ══ EXCEL EXPORT ══
-function doExport(){
-  function build(){
-    var X=window.XLSX;
-    var rows=[['No.','Source','Category','Sub-category','Subject','Raised By','Mobile','Email','Priority','Status','Assigned To','Assignee Email','Raised On','Target Date','Closed On','Description','Attachments']];
-    filtered().forEach(function(t){
-      rows.push([t.id,t.source==='imported'?'Legacy':'New',t.cat,t.sub,t.subj,t.by,t.mob,t.email||'',t.prio,t.status,t.assign,t.aEmail||'',fmt(t.raisedOn),fmt(t.td||''),fmt(t.closedOn||''),t.desc||'',(t.atts||[]).map(function(a){return a.name;}).join('; ')]);
-    });
-    var ws=X.utils.aoa_to_sheet(rows);
-    var cols=rows[0].map(function(_,ci){return{wch:Math.min(50,Math.max(10,Math.max.apply(null,rows.map(function(r){return((r[ci]||'')+'').length;}))))};});
-    ws['!cols']=cols;
-    var wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,'Tickets');
-    X.writeFile(wb,'BlendERP_Tickets_'+today()+'.xlsx');
-    showToast('Excel downloaded','ok');
-  }
-  if(window.XLSX)build();
-  else{var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=build;s.onerror=function(){showToast('Could not load Excel library','warn');};document.head.appendChild(s);}
-}
-
-
-
-// ══ SHAREPOINT SAVE (XHR with credentials) ══
-function spSaveTicket(t,onDone){
-  if(!CFG.sp_site||!CFG.sp_list)return;
-  var cmts=t.comments&&t.comments.length?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
-  var item={
-    '__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},
-    'Title':String(t.id||''),
-    'Subject':(t.subj||'').substring(0,255),
-    'Category':t.cat||'',
-    'SubCategory':t.sub||'',
-    'Priority':t.prio||'',
-    'Status':t.status||'',
-    'RaisedBy':t.by||'',
-    'Mobile':t.mob||'',
-    'RequesterEmail':t.email||'',
-    'AssignedTo':t.assign||'',
-    'AssigneeEmail':t.aEmail||'',
-    'Description':(t.desc||'').substring(0,4000),
-    'Source':t.source||'new',
-    'ClosedOn':t.closedOn||'',
-    'Comments':cmts.substring(0,4000)
-  };
-  var lUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items';
-  var xhr=new XMLHttpRequest();
-  xhr.open('POST',CFG.sp_site+'/_api/contextinfo',true);
-  xhr.setRequestHeader('Accept','application/json;odata=verbose');
-  xhr.setRequestHeader('Content-Type','application/json;odata=verbose');
-  xhr.withCredentials=true;
-  xhr.onreadystatechange=function(){
-    if(xhr.readyState!==4)return;
-    var dig='';
-    try{var resp=JSON.parse(xhr.responseText);dig=resp.d&&resp.d.GetContextWebInformation&&resp.d.GetContextWebInformation.FormDigestValue||'';}catch(e){}
-    if(!dig){if(onDone)onDone(false);return;}
-    var xhr2=new XMLHttpRequest();
-    xhr2.open('POST',lUrl,true);
-    xhr2.setRequestHeader('Accept','application/json;odata=verbose');
-    xhr2.setRequestHeader('Content-Type','application/json;odata=verbose');
-    xhr2.setRequestHeader('X-RequestDigest',dig);
-    xhr2.withCredentials=true;
-    xhr2.onreadystatechange=function(){
-      if(xhr2.readyState===4){if(onDone)onDone(xhr2.status>=200&&xhr2.status<300);}
-    };
-    xhr2.send(JSON.stringify(item));
-  };
-  xhr.send();
-}
-
-// ══ BLEND ERP — EXCEL + SP + TEAMS ACTIONS ══
-var _xlToken=null,_xlExpiry=0;
-
-function getMSAL(){
-  if(window._msal)return window._msal;
-  if(typeof msal==='undefined')return null;
-  try{
-    window._msal=new msal.PublicClientApplication({
-      auth:{clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',redirectUri:window.location.origin+window.location.pathname},
-      cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
-    });
-    return window._msal;
-  }catch(e){return null;}
-}
-
-function loadMSAL(cb){
-  if(typeof msal!=='undefined'){cb(getMSAL());return;}
-  var s=document.createElement('script');
-  s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
-  s.onload=function(){cb(getMSAL());};
-  s.onerror=function(){cb(null);};
-  document.head.appendChild(s);
-}
-
-function getToken(scopes,cb){
-  if(scopes.join(',').indexOf('Files')>-1&&_xlToken&&Date.now()<_xlExpiry){cb(_xlToken);return;}
-  loadMSAL(function(app){
-    if(!app){cb(null);return;}
-    var accs=app.getAllAccounts(),req={scopes:scopes};
-    if(accs.length){
-      req.account=accs[0];
-      app.acquireTokenSilent(req)
-        .then(function(r){
-          if(scopes.join(',').indexOf('Files')>-1){_xlToken=r.accessToken;_xlExpiry=Date.now()+3500000;}
-          cb(r.accessToken);
-        })
-        .catch(function(){
-          app.acquireTokenPopup(req)
-            .then(function(r){
-              if(scopes.join(',').indexOf('Files')>-1){_xlToken=r.accessToken;_xlExpiry=Date.now()+3500000;}
-              cb(r.accessToken);
-            }).catch(function(){cb(null);});
-        });
-    }else{
-      app.acquireTokenPopup(req)
-        .then(function(r){
-          if(scopes.join(',').indexOf('Files')>-1){_xlToken=r.accessToken;_xlExpiry=Date.now()+3500000;}
-          cb(r.accessToken);
-        }).catch(function(){cb(null);});
-    }
-  });
-}
-
-function ticketToRow(t){
-  var cmts=t.comments&&t.comments.length?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
-  return [t.id||'',t.subj||'',t.cat||'',t.sub||'',t.prio||'',t.status||'',
-    t.by||'',t.mob||'',t.email||'',t.assign||'',t.aEmail||'',
-    t.td||'',t.raisedOn||'',t.closedOn||'',t.desc||'',t.source||'new',cmts];
-}
-
-function getExcelUrls(tok,cb){
-  var enc=btoa(CFG.xl_url).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  fetch('https://graph.microsoft.com/v1.0/shares/u!'+enc+'/driveItem',{headers:{'Authorization':'Bearer '+tok}})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d||!d.id){cb(null);return;}
-    var base='https://graph.microsoft.com/v1.0/drives/'+d.parentReference.driveId+'/items/'+d.id+'/workbook/tables/TicketsTable/rows';
-    cb(base,tok);
-  }).catch(function(){cb(null);});
-}
-
-var _syncedIds={};
-function syncOneToExcel(t){
-  if(!CFG.xl_url)return;
-  // Deduplicate - don't sync same ticket twice in same session
-  if(_syncedIds[t.id]){return;}
-  _syncedIds[t.id]=1;
-  getToken(['Files.ReadWrite'],function(tok){
-    if(!tok)return;
-    getExcelUrls(tok,function(base,tk){
-      if(!base)return;
-      fetch(base+'/add',{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({values:[ticketToRow(t)]})})
-      .then(function(r){if(r.ok){var el=G('S_XL_STATUS');if(el)el.innerHTML='<span style="color:#16a34a;font-size:12px">\u2713 Saved to OneDrive Excel<\/span>';}})      .catch(function(){});
-    });
-  });
-}
-
-function syncAllToExcel(){
-  if(!CFG.xl_url){showToast('Add OneDrive Excel URL in Settings first','warn');openCfg();return;}
-  if(!confirm('Clear Excel table and re-sync all '+tkts.length+' tickets? (Removes duplicates)'))return;
-  showToast('Connecting to OneDrive...');
-  getToken(['Files.ReadWrite'],function(tok){
-    if(!tok){showToast('Sign-in failed. Try again.','warn');return;}
-    getExcelUrls(tok,function(base,tk){
-      if(!base){showToast('Excel file not found. Check URL in Settings.','warn');return;}
-      // Step 1: Clear ALL existing rows using range clear
-      var tableBase=base.replace('/rows','');
-      // Get row count first
-      fetch(base+'?$top=2000',{headers:{'Authorization':'Bearer '+tk}})
-      .then(function(r){return r.json();})
-      .then(function(existing){
-        var existingRows=existing&&existing.value?existing.value:[];
-        showToast('Removing '+existingRows.length+' old rows...');
-        // Delete from bottom up to avoid index shifting
-        function deleteRows(cb){
-          if(existingRows.length===0){cb();return;}
-          // Delete all at once using range delete
-          fetch(tableBase+'/range',{headers:{'Authorization':'Bearer '+tk}})
-          .then(function(r){return r.json();})
-          .then(function(range){
-            if(!range||!range.address){cb();return;}
-            // Clear the data rows (not header)
-            var clearUrl=tableBase+'/dataBodyRange/delete';
-            fetch(clearUrl,{method:'POST',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({shift:'Up'})})
-            .then(function(){cb();}).catch(function(){cb();});
-          }).catch(function(){cb();});
-        }
-        deleteRows(function(){
-          showToast('Adding '+tkts.length+' tickets...');
-          var rows=tkts.map(ticketToRow);
-          var batches=[];
-          for(var i=0;i<rows.length;i+=50)batches.push(rows.slice(i,i+50));
-          function addBatch(idx){
-            if(idx>=batches.length){
-              showToast('\u2713 '+tkts.length+' tickets synced to Excel! No duplicates.','ok');
-              _syncedIds={};// Reset dedup cache
-              return;
-            }
-            fetch(base,{method:'POST',
-              headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},
-              body:JSON.stringify({values:batches[idx]})
-            }).then(function(r){
-              if(r.ok)addBatch(idx+1);
-              else r.text().then(function(t){showToast('Error: '+t.slice(0,100),'warn');});
-            }).catch(function(e){showToast('Error: '+e.message,'warn');});
-          }
-          addBatch(0);
-        });
-      }).catch(function(){
-        showToast('Could not read Excel. Check URL in Settings.','warn');
-      });
-    });
-  });
-}
-
-function handleTeamsActions(){
-  var p=new URLSearchParams(window.location.search);
-  var rid=p.get('resolve'),tid=p.get('target'),vid=p.get('t');
-  if(!rid&&!tid&&!vid)return;
-  window.history.replaceState({},document.title,window.location.pathname);
-  
-  // Auto-open admin panel and execute action
-  setTimeout(function(){
-    if(rid){
-      // Auto-resolve: open admin password prompt then resolve
-      sessionStorage.setItem('t_resolve',rid);
-      // Show action banner
-      showTeamsActionBanner('resolve',rid);
-    }
-    if(tid){
-      sessionStorage.setItem('t_target',tid);
-      showTeamsActionBanner('target',tid);
-    }
-    if(vid){
-      // Just view - open admin
-      sessionStorage.setItem('t_view',vid);
-      showTeamsActionBanner('view',vid);
-    }
-  },1000);
-}
-
-function showTeamsActionBanner(action,ticketId){
-  var msg='';
-  var btnTxt='';
-  if(action==='resolve'){msg='Teams action: Mark Ticket #'+ticketId+' as Resolved';btnTxt='Click here to Resolve';}
-  else if(action==='target'){msg='Teams action: Set Target Date for Ticket #'+ticketId;btnTxt='Click here to Set Date';}
-  else{msg='Teams action: View Ticket #'+ticketId;btnTxt='Click here to View';}
-  
-  // Create floating banner
-  var banner=document.createElement('div');
-  banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#6264A7;color:#fff;padding:14px 20px;z-index:99999;display:flex;align-items:center;justify-content:space-between;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
-  banner.innerHTML='<span>\uD83D\uDCCA <b>'+msg+'</b></span>'
-    +'<button onclick="executTeamsAction(\"'+action+'\",\"'+ticketId+'\")" style="background:#fff;color:#6264A7;border:none;padding:8px 16px;border-radius:5px;font-weight:700;cursor:pointer">'+btnTxt+'</button>'
-    +'<button onclick="this.parentElement.remove()" style="background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;margin-left:10px">\u2715</button>';
-  document.body.insertBefore(banner,document.body.firstChild);
-}
-
-function executTeamsAction(action,ticketId){
-  // Remove banner
-  var banners=document.querySelectorAll('[data-teams-banner]');
-  banners.forEach(function(b){b.remove();});
-  document.body.firstChild&&document.body.firstChild.style&&document.body.firstChild.style.background==='rgb(98, 100, 167)'&&document.body.firstChild.remove();
-  
-  if(action==='resolve'){
-    // Need admin access - check if already in admin
-    var admPw=prompt('Enter admin password to mark Ticket #'+ticketId+' as Resolved:');
-    if(!admPw)return;
-    if(admPw!==CFG.pass){showToast('Wrong admin password','warn');return;}
-    resolveTicketById(ticketId);
-  } else if(action==='target'){
-    var admPw2=prompt('Enter admin password to set target date for Ticket #'+ticketId+':');
-    if(!admPw2)return;
-    if(admPw2!==CFG.pass){showToast('Wrong admin password','warn');return;}
-    setTargetDateById(ticketId);
-  } else {
-    // View - open admin
-    var admPw3=prompt('Enter admin password:');
-    if(!admPw3||admPw3!==CFG.pass)return;
-    if(typeof goAdmin==='function')goAdmin();
-  }
-}
-
-function resolveTicketById(tid){
-  var t=tkts.filter(function(x){return x.id===tid;})[0];if(!t)return;
-  t.status='Closed';t.closedOn=today();saveStore();
-  callFlowEvent('Resolved',{ticketId:t.id,subject:t.subj,category:t.cat,subcategory:t.sub,priority:t.prio,status:t.status,raisedBy:t.by,assigneeName:t.assign,targetDate:t.td,resolution:'Resolved via Teams'});
-  syncOneToExcel(t);
-  if(typeof renderAdm==='function')renderAdm();
-  showToast('Ticket #'+tid+' Resolved \u2713','ok');
-}
-
-function setTargetDateById(tid){
-  var t=tkts.filter(function(x){return x.id===tid;})[0];if(!t)return;
-  var d=prompt('Target date for #'+tid+' (YYYY-MM-DD):',t.td||'');if(!d)return;
-  t.td=d;saveStore();
-  callFlowEvent('Updated',{ticketId:t.id,subject:t.subj,priority:t.prio,status:t.status,raisedBy:t.by,assigneeName:t.assign,targetDate:d,changes:'Target date: '+d});
-  syncOneToExcel(t);
-  if(typeof renderAdm==='function')renderAdm();
-  showToast('Target date set \u2713','ok');
-}
-
-// Comments
-function renderEpComments(tid){
-  var el=document.getElementById('EP_CMT_LIST');if(!el)return;
-  var t=tkts.filter(function(x){return x.id===tid;})[0];
-  if(!t||!t.comments||!t.comments.length){el.innerHTML='<div style="color:#AAA;padding:4px">No comments yet.</div>';return;}
-  el.innerHTML=t.comments.map(function(c){return '<div style="padding:6px 0;border-bottom:1px solid #F5F5F5"><b style="color:#6264A7;font-size:11px">'+c.who+'</b> <span style="color:#AAA;font-size:10px">'+c.ts+'</span><div style="margin-top:2px">'+c.text+'</div></div>';}).join('');
-}
-function getEpComment(){var ta=document.getElementById('EP_CMT_TEXT');return ta?ta.value.trim():'';}
-function clearEpComment(){var ta=document.getElementById('EP_CMT_TEXT');if(ta)ta.value='';}
-function addCommentToTicket(tid,author,text){
-  if(!text)return;
-  var t=tkts.filter(function(x){return x.id===tid;})[0];if(!t)return;
-  if(!t.comments)t.comments=[];
-  t.comments.push({who:author,text:text,ts:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})});
-  saveStore();
-}
-
-// Email gate
-var ALLOWED_DOMAIN=CFG.allowed_domain||'blendgroup.in';
-function showGateError(msg){var e=document.getElementById('GATE_ERR');if(e){e.style.display='block';e.innerHTML=msg;}}
-function checkEmail(){
-  var em=document.getElementById('GATE_EMAIL'),nm=document.getElementById('GATE_NAME'),err=document.getElementById('GATE_ERR');
-  if(err)err.style.display='none';
-  var email=(em?em.value.trim():'').toLowerCase(),name=(nm?nm.value.trim():'');
-  if(!email){showGateError('Please enter your email.');em&&em.focus();return;}
-  if(!name){showGateError('Please enter your full name.');nm&&nm.focus();return;}
-  var dom=CFG.allowed_domain||'blendgroup.in';
-  if(email.indexOf('@'+dom)<0){showGateError('Access denied.<br>Only <b>@'+dom+'</b> accounts can access.<br>You entered: <b>'+email+'</b>');return;}
-  sessionStorage.setItem('blend_access','1');
-  sessionStorage.setItem('blend_ms_email',email);
-  sessionStorage.setItem('blend_ms_name',name);
-  document.getElementById('PG_GATE').style.display='none';
-  document.getElementById('PG_PUB').style.display='block';
-  boot();
-  if(typeof applyUser==='function')applyUser(name,email);
-  handleTeamsActions();
-}
-(function(){
-  if(sessionStorage.getItem('blend_access')==='1'){
-    var name=sessionStorage.getItem('blend_ms_name')||'',email=sessionStorage.getItem('blend_ms_email')||'';
-    setTimeout(function(){
-      var g=document.getElementById('PG_GATE'),p=document.getElementById('PG_PUB');
-      if(g)g.style.display='none';if(p)p.style.display='block';
-      handleTeamsActions();
-    },50);
-  }
-})();
-
-</script>
+    showToast('\u2713 Test sent! Check ERP Tickets channel now','ok');
+    alert('Test sent!\n\nCheck ERP Tickets channel in Teams.\nYou should see a green card within 30 seconds.');
+  }).catch(function(e){alert('Error: '+e.message);});
+}</script>
 </body>
 </html>
