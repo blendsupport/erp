@@ -483,8 +483,8 @@ textarea.inp{height:70px;resize:vertical}
 var CFG={
   pass:'admin123',
   allowed_domain:'blendgroup.in',
-  teams_webhook:'',
-  xl_url:'',
+  teams_webhook:'https://default5e09d88bd125453ea02e1920a11edd.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/2b77883e4aa54773b5f95ca61a2b230a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=f6-0_YehvEhX8oWEXgpFjat2_Ze9wxwB0LuTNO8LoEk',
+  xl_url:'https://blendgroupin-my.sharepoint.com/:x:/g/personal/mounika_kolluru_blendgroup_in/IQD-7_aeYedKSLR8XJQsin_wAegWtdIrkyjMBAfcdkH0JRk?e=MeaoD1',
   sp_site:'https://blendgroupin.sharepoint.com/sites/BlendSupport',
   sp_list:'BlendERP_Tickets'
 };
@@ -1489,6 +1489,10 @@ function checkEmail(){
   }
 })();
 
+
+// Ensure hardcoded URLs always available
+if(!CFG.teams_webhook)CFG.teams_webhook='https://default5e09d88bd125453ea02e1920a11edd.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/2b77883e4aa54773b5f95ca61a2b230a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=f6-0_YehvEhX8oWEXgpFjat2_Ze9wxwB0LuTNO8LoEk';
+if(!CFG.xl_url)CFG.xl_url='https://blendgroupin-my.sharepoint.com/:x:/g/personal/mounika_kolluru_blendgroup_in/IQD-7_aeYedKSLR8XJQsin_wAegWtdIrkyjMBAfcdkH0JRk?e=MeaoD1';
 </script>
 </body>
 </html>
