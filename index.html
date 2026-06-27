@@ -248,7 +248,7 @@ textarea.inp{height:70px;resize:vertical}
     <div id="S_MSG" style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:14px;font-size:12px;color:#33344A;margin-bottom:18px;text-align:left;max-width:540px;margin-left:auto;margin-right:auto"></div>
     <div id="S_SP_STATUS" style="font-size:11px;color:#888;margin-bottom:14px"></div>
     <button class="btn b-blue" onclick="doReset()">＋ Raise Another Ticket</button>
-    &nbsp;<button class="btn" onclick="goTab(2)">View My Tickets</button>
+    &nbsp;
   </div>
 </div>
 </div><!-- /V1 -->
@@ -764,27 +764,74 @@ function cpMsg(bid){
 function callFlowEvent(eventType,payload){
   if(!payload)payload={};
   if(!CFG.teams_webhook)return;
-  var p=payload,ic={'New Ticket':'\uD83C\uDFAB','Updated':'\u270F\uFE0F','Resolved':'\u2705','Closed':'\uD83D\uDD12','Reminder':'\u23F0'}[eventType]||'\uD83D\uDCCC';
+  var p=payload;
+  var icons={'New Ticket':'🎫','Updated':'✏️','Resolved':'✅','Closed':'🔒','Reminder':'⏰'};
+  var ic=icons[eventType]||'📌';
+  var colors={'Urgent':'attention','High':'warning','Medium':'good','Low':'accent'};
+  var col=colors[p.priority]||'accent';
+  var appUrl='https://blendsupport.github.io/erp/';
+  
+  // Teams Workflows webhook requires Adaptive Card wrapped in message format
   var card={
-    '@type':'MessageCard','@context':'https://schema.org/extensions','themeColor':'E31E24',
-    'summary':ic+' Ticket #'+(p.ticketId||'')+' '+eventType,
-    'title':ic+' Ticket #'+(p.ticketId||'')+' '+eventType,
-    'sections':[{'facts':[
-      {'name':'Subject','value':p.subject||''},
-      {'name':'Category','value':(p.category||'')+(p.subcategory?' \u2014 '+p.subcategory:'')},
-      {'name':'Priority','value':p.priority||''},{'name':'Status','value':p.status||''},
-      {'name':'Raised By','value':p.raisedBy||''},{'name':'Assigned To','value':p.assigneeName||''},
-      {'name':'Target Date','value':p.targetDate||'Not set'},
-      {'name':'Notes','value':(p.resolution||p.changes||p.description||'').substring(0,200)}
-    ]}],
-    'potentialAction':[
-      {'@type':'OpenUri','name':'\uD83D\uDD17 View Ticket','targets':[{'os':'default','uri':'https://blendsupport.github.io/erp/'}]},
-      {'@type':'OpenUri','name':'\u2705 Mark Resolved','targets':[{'os':'default','uri':'https://blendsupport.github.io/erp/?resolve='+(p.ticketId||'')}]},
-      {'@type':'OpenUri','name':'\uD83D\uDCC5 Set Target Date','targets':[{'os':'default','uri':'https://blendsupport.github.io/erp/?target='+(p.ticketId||'')}]}
-    ]
+    "type":"message",
+    "attachments":[{
+      "contentType":"application/vnd.microsoft.card.adaptive",
+      "content":{
+        "$schema":"http://adaptivecards.io/schemas/adaptive-card.json",
+        "type":"AdaptiveCard",
+        "version":"1.4",
+        "body":[
+          {
+            "type":"TextBlock",
+            "text":ic+" **"+eventType+"** — Ticket #"+(p.ticketId||''),
+            "weight":"bolder",
+            "size":"large",
+            "color":col,
+            "wrap":true
+          },
+          {
+            "type":"FactSet",
+            "facts":[
+              {"title":"Subject","value":p.subject||'-'},
+              {"title":"Category","value":(p.category||'-')+(p.subcategory?' — '+p.subcategory:'')},
+              {"title":"Priority","value":p.priority||'-'},
+              {"title":"Status","value":p.status||'Open'},
+              {"title":"Raised By","value":(p.raisedBy||'-')+(p.mobile?' | '+p.mobile:'')},
+              {"title":"Assigned To","value":p.assigneeName||'Unassigned'},
+              {"title":"Target Date","value":p.targetDate||'Not set'},
+              {"title":"Description","value":(p.description||'-').substring(0,300)}
+            ]
+          }
+        ],
+        "actions":[
+          {
+            "type":"Action.OpenUrl",
+            "title":"🔗 View Ticket",
+            "url":appUrl
+          },
+          {
+            "type":"Action.OpenUrl",
+            "title":"✅ Mark Resolved",
+            "url":appUrl+"?resolve="+(p.ticketId||'')
+          },
+          {
+            "type":"Action.OpenUrl",
+            "title":"📅 Set Target Date",
+            "url":appUrl+"?target="+(p.ticketId||'')
+          }
+        ]
+      }
+    }]
   };
-  fetch(CFG.teams_webhook,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)});
+  
+  fetch(CFG.teams_webhook,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(card)
+  });
 }
+
 
 function callFlowEvent(url,payload){
   if(!url){
@@ -848,6 +895,7 @@ function doSubmit(){
     atts:attsSnap,source:'new'};
   tkts.unshift(t);saveStore();
   if(CFG.xl_url&&typeof syncOneToExcel==='function')syncOneToExcel(t);
+  if(CFG.sp_site&&typeof spSaveTicket==='function')spSaveTicket(t,null);
   // For unassigned tickets - auto-post to ERP channel webhook
   if(t.assign==='Unassigned'||!t.assign){
     callFlowEvent('New Ticket',{
@@ -1252,6 +1300,54 @@ function doExport(){
   else{var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=build;s.onerror=function(){showToast('Could not load Excel library','warn');};document.head.appendChild(s);}
 }
 
+
+
+// ══ SHAREPOINT SAVE (XHR with credentials) ══
+function spSaveTicket(t,onDone){
+  if(!CFG.sp_site||!CFG.sp_list)return;
+  var cmts=t.comments&&t.comments.length?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
+  var item={
+    '__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},
+    'Title':String(t.id||''),
+    'Subject':(t.subj||'').substring(0,255),
+    'Category':t.cat||'',
+    'SubCategory':t.sub||'',
+    'Priority':t.prio||'',
+    'Status':t.status||'',
+    'RaisedBy':t.by||'',
+    'Mobile':t.mob||'',
+    'RequesterEmail':t.email||'',
+    'AssignedTo':t.assign||'',
+    'AssigneeEmail':t.aEmail||'',
+    'Description':(t.desc||'').substring(0,4000),
+    'Source':t.source||'new',
+    'ClosedOn':t.closedOn||'',
+    'Comments':cmts.substring(0,4000)
+  };
+  var lUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items';
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',CFG.sp_site+'/_api/contextinfo',true);
+  xhr.setRequestHeader('Accept','application/json;odata=verbose');
+  xhr.setRequestHeader('Content-Type','application/json;odata=verbose');
+  xhr.withCredentials=true;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    var dig='';
+    try{var resp=JSON.parse(xhr.responseText);dig=resp.d&&resp.d.GetContextWebInformation&&resp.d.GetContextWebInformation.FormDigestValue||'';}catch(e){}
+    if(!dig){if(onDone)onDone(false);return;}
+    var xhr2=new XMLHttpRequest();
+    xhr2.open('POST',lUrl,true);
+    xhr2.setRequestHeader('Accept','application/json;odata=verbose');
+    xhr2.setRequestHeader('Content-Type','application/json;odata=verbose');
+    xhr2.setRequestHeader('X-RequestDigest',dig);
+    xhr2.withCredentials=true;
+    xhr2.onreadystatechange=function(){
+      if(xhr2.readyState===4){if(onDone)onDone(xhr2.status>=200&&xhr2.status<300);}
+    };
+    xhr2.send(JSON.stringify(item));
+  };
+  xhr.send();
+}
 
 // ══ BLEND ERP — EXCEL + SP + TEAMS ACTIONS ══
 var _xlToken=null,_xlExpiry=0;
