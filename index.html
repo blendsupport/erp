@@ -773,7 +773,26 @@ function callFlowEvent(eventType,payload){
       ]
     }}]
   };
-  fetch(webhookUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)});
+  // Try with no-cors (standard for webhooks)
+  fetch(webhookUrl,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(card)
+  }).then(function(){
+    console.log('Teams webhook sent OK');
+  }).catch(function(e){
+    console.error('Teams webhook error:',e);
+    // Fallback: try with cors to see the actual error
+    fetch(webhookUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(card)
+    }).then(function(r){
+      console.log('Teams webhook response:',r.status,r.statusText);
+      if(!r.ok)r.text().then(function(t){console.error('Webhook response:',t);});
+    }).catch(function(e2){console.error('Webhook cors error:',e2.message);});
+  });
 }
 
 function callFlowEvent(url,payload){
