@@ -369,6 +369,7 @@ textarea.inp{height:70px;resize:vertical}
     </div>
     <div style="margin-top:12px;display:flex;gap:8px">
       <div class="cfg-row"><div class="cfg-lbl">Teams Webhook URL</div><input class="inp" id="CFG_TW" type="url" placeholder="https://...webhook.office.com/..."></div>
+    <div class="cfg-row"><div class="cfg-lbl">Power Automate Flow URL <span class="cfg-hint">From make.powerautomate.com — paste your flow's HTTP trigger URL here for auto-SP+Excel save</span></div><input class="inp" id="CFG_PA" type="url" placeholder="https://prod-xx.westus.logic.azure.com/..."></div>
     <div class="cfg-row"><div class="cfg-lbl">OneDrive Excel URL</div><input class="inp" id="CFG_XL_URL" type="url"></div>
     <div class="cfg-row"><div class="cfg-lbl">Allowed Domain</div><input class="inp" id="CFG_DOMAIN" placeholder="blendgroup.in" style="width:200px"></div>
     <div class="sec" style="margin-top:16px">SharePoint Auto-Save</div>
@@ -485,6 +486,7 @@ var CFG={
   pass:'admin123',
   allowed_domain:'blendgroup.in',
   teams_webhook:'',
+  pa_flow_url:'',
   xl_url:'',
   sp_site:'https://blendgroupin.sharepoint.com/sites/BlendSupport',
   sp_list:'BlendERP_Tickets'
@@ -776,6 +778,25 @@ function callFlowEvent(eventType,payload){
       {'@type':'OpenUri','name':'\u2705 Mark Resolved','targets':[{'os':'default','uri':'https://blendsupport.github.io/erp/?resolve='+(p.ticketId||'')}]},
       {'@type':'OpenUri','name':'\uD83D\uDCC5 Set Target Date','targets':[{'os':'default','uri':'https://blendsupport.github.io/erp/?target='+(p.ticketId||'')}]}
     ]
+  };
+  // Also send raw data for Power Automate parsing
+  card['blend_ticketData'] = {
+    ticketId: p.ticketId||'',
+    subject: p.subject||'',
+    category: p.category||'',
+    subcategory: p.subcategory||'',
+    priority: p.priority||'',
+    status: p.status||'',
+    raisedBy: p.raisedBy||'',
+    mobile: p.mobile||p.requesterMobile||'',
+    requesterEmail: p.requesterEmail||'',
+    assignedTo: p.assigneeName||'',
+    assigneeEmail: p.assigneeEmail||'',
+    targetDate: p.targetDate||'',
+    raisedOn: p.raisedOn||'',
+    description: (p.description||p.resolution||'').substring(0,4000),
+    source: p.source||'new',
+    eventType: eventType
   };
   fetch(CFG.teams_webhook,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)});
 }
@@ -1070,7 +1091,7 @@ function saveTkt(){
   }
   showMbar('💬 Ticket saved. Notify via Teams:<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>');
   showToast('Ticket #'+curId+' saved','ok');
-  if(typeof spSaveTicket==='function'){var sv=tkts.filter(function(x){return x.id===curId;})[0];if(sv)spSaveTicket(sv);}renderAdm();
+  if(typeof spSaveTicket==='function'){var sv=tkts.filter(function(x){return x.id===curId;})[0];if(sv){spSaveTicket(sv);sendToPA(sv);}}renderAdm();
 }
 
 function markPend(){
@@ -1182,6 +1203,7 @@ function closeCfg(){G('CFG_WRAP').style.display='none';}
 function loadCfgToPanel(){
   G('CFG_PW').value='';G('CFG_CNT').value=cnt;
   if(G('CFG_TW'))G('CFG_TW').value=CFG.teams_webhook||'';
+  if(G('CFG_PA'))G('CFG_PA').value=CFG.pa_flow_url||'';
   if(G('CFG_XL_URL'))G('CFG_XL_URL').value=CFG.xl_url||'';
   if(G('CFG_DOMAIN'))G('CFG_DOMAIN').value=CFG.allowed_domain||'blendgroup.in';
   if(G('CFG_SP_SITE'))G('CFG_SP_SITE').value=CFG.sp_site||'';
@@ -1191,6 +1213,7 @@ function changePw(){var p=GV('CFG_PW');if(!p||p.length<4){showToast('Password mu
 function saveCnt(){var v=parseInt(GV('CFG_CNT'));if(isNaN(v)||v<1){showToast('Invalid number','warn');return;}cnt=v;saveStore();showToast('Counter set to '+v,'ok');}
 function saveCfg(){
   if(G('CFG_TW'))CFG.teams_webhook=G('CFG_TW').value.trim();
+  if(G('CFG_PA'))CFG.pa_flow_url=G('CFG_PA').value.trim();
   if(G('CFG_XL_URL'))CFG.xl_url=G('CFG_XL_URL').value.trim();
   if(G('CFG_DOMAIN')){CFG.allowed_domain=G('CFG_DOMAIN').value.trim().toLowerCase().replace(/^@/,'');}
   if(G('CFG_SP_SITE'))CFG.sp_site=G('CFG_SP_SITE').value.trim().replace(/\/+$/,'');
@@ -1234,6 +1257,41 @@ function doExport(){
 }
 
 
+// ══ POWER AUTOMATE DIRECT FLOW ══
+function sendToPA(t){
+  // Send ticket data directly to Power Automate HTTP trigger (free with M365)
+  var url=CFG.pa_flow_url||CFG.teams_webhook;
+  if(!url)return;
+  var payload={
+    ticketId:String(t.id||''),
+    subject:t.subj||'',
+    category:t.cat||'',
+    subcategory:t.sub||'',
+    priority:t.prio||'',
+    status:t.status||'Open',
+    raisedBy:t.by||'',
+    mobile:t.mob||'',
+    requesterEmail:t.email||'',
+    assignedTo:t.assign||'',
+    assigneeEmail:t.aEmail||'',
+    targetDate:t.td||'',
+    raisedOn:t.raisedOn||today(),
+    closedOn:t.closedOn||'',
+    description:t.desc||'',
+    source:t.source||'new',
+    comments:t.comments?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):''
+  };
+  // If PA flow URL is configured, send there
+  if(CFG.pa_flow_url){
+    fetch(CFG.pa_flow_url,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+  }
+}
+
 // ══ SHAREPOINT + MSAL AUTH ══
 var _spToken=null,_spExpiry=0;
 function getSpToken(cb){
@@ -1261,44 +1319,153 @@ function getSpToken(cb){
 function spHdr(d,t){var h={'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'};if(d)h['X-RequestDigest']=d;if(t)h['Authorization']='Bearer '+t;return h;}
 function spSaveTicket(t,onDone){
   if(!CFG.sp_site||!CFG.sp_list)return;
-  var cmts=t.comments&&t.comments.length?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
-  var item={'__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},'Title':String(t.id||''),'Subject':(t.subj||'').substring(0,255),'Category':t.cat||'','SubCategory':t.sub||'','Priority':t.prio||'','Status':t.status||'','RaisedBy':t.by||'','Mobile':t.mob||'','RequesterEmail':t.email||'','AssignedTo':t.assign||'','AssigneeEmail':t.aEmail||'','Description':(t.desc||'').substring(0,4000),'Source':t.source||'new','ClosedOn':t.closedOn||'','Comments':cmts.substring(0,4000)};
-  var lUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)';
-  getSpToken(function(tok){
-    if(!tok)return;
-    fetch(CFG.sp_site+'/_api/contextinfo',{method:'POST',headers:spHdr(null,tok)})
-    .then(function(r){return r.json();}).then(function(ctx){
-      var dig=ctx&&ctx.d&&ctx.d.GetContextWebInformation&&ctx.d.GetContextWebInformation.FormDigestValue;
-      if(!dig)return;
-      fetch(lUrl+"/items?$filter=Title eq '"+encodeURIComponent(String(t.id||""))+"'&$select=Id",{headers:spHdr(null,tok)})
-      .then(function(r){return r.json();}).then(function(d){
-        var ex=d&&d.d&&d.d.results&&d.d.results[0];
-        if(ex)fetch(lUrl+'/items('+ex.Id+')',{method:'POST',headers:Object.assign(spHdr(dig,tok),{'X-HTTP-Method':'MERGE','If-Match':'*'}),body:JSON.stringify(item)}).catch(function(){});
-        else fetch(lUrl+'/items',{method:'POST',headers:spHdr(dig,tok),body:JSON.stringify(item)})
-          .then(function(r){if(r.ok&&onDone)onDone(true);})
-          .catch(function(){if(onDone)onDone(false);});
-      }).catch(function(){});
-    }).catch(function(){});
-  });
+  var cmts=t.comments&&t.comments.length?
+    t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
+  var item={
+    '__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},
+    'Title':String(t.id||''),
+    'Subject':(t.subj||'').substring(0,255),
+    'Category':t.cat||'',
+    'SubCategory':t.sub||'',
+    'Priority':t.prio||'',
+    'Status':t.status||'',
+    'RaisedBy':t.by||'',
+    'Mobile':t.mob||'',
+    'RequesterEmail':t.email||'',
+    'AssignedTo':t.assign||'',
+    'AssigneeEmail':t.aEmail||'',
+    'Description':(t.desc||'').substring(0,4000),
+    'Source':t.source||'new',
+    'ClosedOn':t.closedOn||'',
+    'Comments':cmts.substring(0,4000)
+  };
+  var lUrl=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items';
+  
+  // Get SP form digest using no-cors (fires-and-forgets)
+  // Use XDomainRequest approach for cross-origin SP writes
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',CFG.sp_site+'/_api/contextinfo',true);
+  xhr.setRequestHeader('Accept','application/json;odata=verbose');
+  xhr.setRequestHeader('Content-Type','application/json;odata=verbose');
+  xhr.withCredentials=true;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4){
+      var dig='';
+      try{
+        var resp=JSON.parse(xhr.responseText);
+        dig=resp.d&&resp.d.GetContextWebInformation&&resp.d.GetContextWebInformation.FormDigestValue||'';
+      }catch(e){}
+      if(!dig){
+        // Try MSAL token if available
+        if(_spToken&&Date.now()<_spExpiry){
+          saveWithToken(item,lUrl,_spToken,onDone);
+        } else {
+          if(onDone)onDone(false);
+        }
+        return;
+      }
+      // Save with digest
+      var xhr2=new XMLHttpRequest();
+      xhr2.open('POST',lUrl,true);
+      xhr2.setRequestHeader('Accept','application/json;odata=verbose');
+      xhr2.setRequestHeader('Content-Type','application/json;odata=verbose');
+      xhr2.setRequestHeader('X-RequestDigest',dig);
+      xhr2.withCredentials=true;
+      xhr2.onreadystatechange=function(){
+        if(xhr2.readyState===4){
+          var ok=xhr2.status>=200&&xhr2.status<300;
+          if(onDone)onDone(ok);
+          if(ok){setSPInd&&setSPInd('ok');}
+        }
+      };
+      xhr2.send(JSON.stringify(item));
+    }
+  };
+  xhr.send();
 }
+
+function saveWithToken(item,lUrl,tok,onDone){
+  fetch(CFG.sp_site+'/_api/contextinfo',{
+    method:'POST',
+    headers:{'Accept':'application/json;odata=verbose',
+             'Content-Type':'application/json;odata=verbose',
+             'Authorization':'Bearer '+tok}
+  }).then(function(r){return r.json();})
+  .then(function(ctx){
+    var dig=ctx&&ctx.d&&ctx.d.GetContextWebInformation&&ctx.d.GetContextWebInformation.FormDigestValue;
+    if(!dig){if(onDone)onDone(false);return;}
+    fetch(lUrl,{
+      method:'POST',
+      headers:{'Accept':'application/json;odata=verbose',
+               'Content-Type':'application/json;odata=verbose',
+               'X-RequestDigest':dig,
+               'Authorization':'Bearer '+tok},
+      body:JSON.stringify(item)
+    }).then(function(r){if(onDone)onDone(r.ok);})
+    .catch(function(){if(onDone)onDone(false);});
+  }).catch(function(){if(onDone)onDone(false);});
+}
+
+
 function spLoadAll(cb){
   if(!CFG.sp_site||!CFG.sp_list){if(cb)cb(false);return;}
-  var url=CFG.sp_site+'/_api/web/lists/getbytitle(%27'+encodeURIComponent(CFG.sp_list)+'%27)/items?$select=Title,Subject,Category,SubCategory,Priority,Status,RaisedBy,Mobile,RequesterEmail,AssignedTo,AssigneeEmail,RaisedOn,ClosedOn,Description,Source,Comments&$top=2000&$orderby=Id%20desc';
-  getSpToken(function(tok){
-    if(!tok){if(cb)cb(false);return;}
-    fetch(url,{headers:spHdr(null,tok)}).then(function(r){return r.json();}).then(function(d){
-      if(!d||!d.d||!d.d.results){if(cb)cb(false);return;}
-      var ex={};tkts.forEach(function(t){ex[String(t.id)]=1;});var added=0;
-      d.d.results.forEach(function(item){
-        var tid=String(item.Title||'').trim();if(!tid||ex[tid])return;
-        tkts.push({id:tid,subj:item.Subject||'',cat:item.Category||'Others',sub:item.SubCategory||'General Query',prio:item.Priority||'Medium',status:item.Status||'Open',by:item.RaisedBy||'',mob:item.Mobile||'',email:item.RequesterEmail||'',assign:item.AssignedTo||'Unassigned',aEmail:item.AssigneeEmail||'',td:'',raisedOn:item.RaisedOn||'',closedOn:item.ClosedOn||'',desc:item.Description||'',source:item.Source||'sp',comments:[],atts:[]});
-        ex[tid]=1;added++;
-      });
-      tkts.sort(function(a,b){var ai=parseInt(String(a.id).replace(/[^0-9]/g,''))||0,bi=parseInt(String(b.id).replace(/[^0-9]/g,''))||0;return bi-ai;});
-      saveStore();if(typeof renderAdm==='function')renderAdm();if(cb)cb(true,added);
-    }).catch(function(){if(cb)cb(false);});
-  });
+  var url=CFG.sp_site+'/_api/web/lists/getbytitle(%27'
+    +encodeURIComponent(CFG.sp_list)+'%27)/items'
+    +'?$select=Title,Subject,Category,SubCategory,Priority,Status,'
+    +'RaisedBy,Mobile,RequesterEmail,AssignedTo,AssigneeEmail,'
+    +'RaisedOn,ClosedOn,Description,Source,Comments'
+    +'&$top=2000&$orderby=Id%20desc';
+  
+  function processResults(data){
+    if(!data||!data.d||!data.d.results){if(cb)cb(false);return;}
+    var ex={};tkts.forEach(function(t){ex[String(t.id)]=1;});
+    var added=0;
+    data.d.results.forEach(function(item){
+      var tid=String(item.Title||'').trim();
+      if(!tid||ex[tid])return;
+      tkts.push({id:tid,subj:item.Subject||'',cat:item.Category||'Others',
+        sub:item.SubCategory||'General Query',prio:item.Priority||'Medium',
+        status:item.Status||'Open',by:item.RaisedBy||'',mob:item.Mobile||'',
+        email:item.RequesterEmail||'',assign:item.AssignedTo||'Unassigned',
+        aEmail:item.AssigneeEmail||'',td:'',raisedOn:item.RaisedOn||'',
+        closedOn:item.ClosedOn||'',desc:item.Description||'',
+        source:item.Source||'sp',comments:[],atts:[]});
+      ex[tid]=1;added++;
+    });
+    tkts.sort(function(a,b){
+      var ai=parseInt(String(a.id).replace(/[^0-9]/g,''))||0;
+      var bi=parseInt(String(b.id).replace(/[^0-9]/g,''))||0;
+      return bi-ai;
+    });
+    saveStore();
+    if(typeof renderAdm==='function')renderAdm();
+    if(cb)cb(true,added);
+  }
+  
+  // Try with XHR + credentials first
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',url,true);
+  xhr.setRequestHeader('Accept','application/json;odata=verbose');
+  xhr.withCredentials=true;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4){
+      if(xhr.status===200){
+        try{processResults(JSON.parse(xhr.responseText));}
+        catch(e){if(cb)cb(false);}
+      } else if(_spToken&&Date.now()<_spExpiry){
+        // Try with MSAL token
+        fetch(url,{headers:{'Accept':'application/json;odata=verbose','Authorization':'Bearer '+_spToken}})
+        .then(function(r){return r.json();}).then(processResults)
+        .catch(function(){if(cb)cb(false);});
+      } else {
+        if(cb)cb(false);
+      }
+    }
+  };
+  xhr.send();
 }
+
+
 function loadFromSP(){
   if(!CFG.sp_site||!CFG.sp_list){showToast('Add SharePoint URL in Settings first','warn');openCfg();return;}
   showToast('Connecting to SharePoint...');
@@ -1343,6 +1510,49 @@ function handleTeamsActions(){
 
 // ══ EMAIL GATE ══
 var ALLOWED_DOMAIN=CFG.allowed_domain||'blendgroup.in';
+
+function silentSpSignIn(){
+  // Load MSAL and attempt silent SP sign-in
+  function trySignIn(){
+    if(!window._msal){
+      try{
+        window._msal=new msal.PublicClientApplication({
+          auth:{
+            clientId:'c5e2666f-d401-4bad-925e-5f21dc8789b4',
+            authority:'https://login.microsoftonline.com/5e09d88b-d125-453e-a02e-1920a11eddfb',
+            redirectUri:window.location.origin+window.location.pathname
+          },
+          cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
+        });
+      }catch(e){return;}
+    }
+    var accounts=window._msal.getAllAccounts();
+    var req={scopes:['https://blendgroupin.sharepoint.com/.default']};
+    if(accounts.length>0){
+      req.account=accounts[0];
+      window._msal.acquireTokenSilent(req)
+      .then(function(r){
+        _spToken=r.accessToken;
+        _spExpiry=Date.now()+3500000;
+        console.log('SP: silent sign-in OK');
+      })
+      .catch(function(){
+        // Silent failed - needs interactive, will happen on first SP action
+        console.log('SP: silent sign-in needs interaction');
+      });
+    }
+  }
+  if(typeof msal!=='undefined'){
+    trySignIn();
+  } else {
+    var s=document.createElement('script');
+    s.src='https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js';
+    s.onload=trySignIn;
+    document.head.appendChild(s);
+  }
+}
+
+
 function showGateError(msg){var e=document.getElementById('GATE_ERR');if(e){e.style.display='block';e.innerHTML=msg;}}
 function checkEmail(){
   var em=document.getElementById('GATE_EMAIL'),nm=document.getElementById('GATE_NAME'),err=document.getElementById('GATE_ERR');
@@ -1359,6 +1569,8 @@ function checkEmail(){
   document.getElementById('PG_PUB').style.display='block';
   boot();
   if(typeof applyUser==='function')applyUser(name,email);
+  // Auto sign-in to SharePoint silently in background
+  silentSpSignIn();
 }
 // Auto-restore session
 (function(){
