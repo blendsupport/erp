@@ -839,7 +839,15 @@ function doSubmit(){
     raisedOn:today(),td:tdVal,desc:GV('F_DS'),closedOn:'',
     atts:attsSnap,source:'new'};
   tkts.unshift(t);saveStore();
-  if(typeof spSaveTicket==='function')spSaveTicket(t);
+  if(typeof spSaveTicket==='function'){
+    spSaveTicket(t,function(ok){
+      var spEl=document.getElementById('S_SP_STATUS');
+      if(spEl){
+        if(ok)spEl.innerHTML='<span style="color:#16a34a;font-size:12px">&#10003; Saved to SharePoint</span>';
+        else spEl.innerHTML='<span style="color:#dc2626;font-size:12px">&#9888; SP save failed — click Admin > Sync to SP</span>';
+      }
+    });
+  }
   logM('New Ticket',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
 
   // Power Automate / OneDrive Excel
@@ -1251,7 +1259,7 @@ function getSpToken(cb){
   }else go();
 }
 function spHdr(d,t){var h={'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'};if(d)h['X-RequestDigest']=d;if(t)h['Authorization']='Bearer '+t;return h;}
-function spSaveTicket(t){
+function spSaveTicket(t,onDone){
   if(!CFG.sp_site||!CFG.sp_list)return;
   var cmts=t.comments&&t.comments.length?t.comments.map(function(c){return '['+c.ts+'] '+c.who+': '+c.text;}).join(' | '):'';
   var item={'__metadata':{'type':'SP.Data.BlendERP_TicketsListItem'},'Title':String(t.id||''),'Subject':(t.subj||'').substring(0,255),'Category':t.cat||'','SubCategory':t.sub||'','Priority':t.prio||'','Status':t.status||'','RaisedBy':t.by||'','Mobile':t.mob||'','RequesterEmail':t.email||'','AssignedTo':t.assign||'','AssigneeEmail':t.aEmail||'','Description':(t.desc||'').substring(0,4000),'Source':t.source||'new','ClosedOn':t.closedOn||'','Comments':cmts.substring(0,4000)};
@@ -1266,7 +1274,9 @@ function spSaveTicket(t){
       .then(function(r){return r.json();}).then(function(d){
         var ex=d&&d.d&&d.d.results&&d.d.results[0];
         if(ex)fetch(lUrl+'/items('+ex.Id+')',{method:'POST',headers:Object.assign(spHdr(dig,tok),{'X-HTTP-Method':'MERGE','If-Match':'*'}),body:JSON.stringify(item)}).catch(function(){});
-        else fetch(lUrl+'/items',{method:'POST',headers:spHdr(dig,tok),body:JSON.stringify(item)}).catch(function(){});
+        else fetch(lUrl+'/items',{method:'POST',headers:spHdr(dig,tok),body:JSON.stringify(item)})
+          .then(function(r){if(r.ok&&onDone)onDone(true);})
+          .catch(function(){if(onDone)onDone(false);});
       }).catch(function(){});
     }).catch(function(){});
   });
