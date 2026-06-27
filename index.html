@@ -825,7 +825,10 @@ function doSubmit(){
   if(!nm){showToast('Please enter your Full Name','warn');return;}
   if(!mb||mb.length<10){showToast('Please enter a valid 10-digit Mobile','warn');return;}
   if(!em||em.indexOf('@')<0){showToast('Please enter your Email','warn');return;}
-  if(!selAsgn.length){showToast('Please add at least one Assignee','warn');return;}
+  // Assignee is optional — default to Unassigned if not set
+  if(!selAsgn.length){
+    selAsgn=[{name:'Unassigned',email:''}];
+  }
   var fullEM=em.indexOf('@')>-1?em:em+'@blendgroup.in';
   var fullMB='+91-'+mb;
   var tdVal=GV('F_TD')||'';
@@ -840,6 +843,18 @@ function doSubmit(){
     atts:attsSnap,source:'new'};
   tkts.unshift(t);saveStore();
   if(CFG.xl_url&&typeof syncOneToExcel==='function')syncOneToExcel(t);
+  // For unassigned tickets - auto-post to ERP channel webhook
+  if(t.assign==='Unassigned'||!t.assign){
+    callFlowEvent('New Ticket',{
+      ticketId:id,subject:sj,category:t.cat,subcategory:t.sub,
+      priority:t.prio,status:'Open',raisedBy:nm,
+      requesterEmail:fullEM,mobile:fullMB,
+      assigneeName:'Unassigned',assigneeEmail:'',
+      targetDate:tdVal?fmt(tdVal):'',
+      raisedOn:fmt(t.raisedOn),
+      description:t.desc||''
+    });
+  }
   logM('New Ticket',id,aEmails,'#'+id+' → '+aNames+' — '+sj);
 
   // Power Automate / OneDrive Excel
@@ -852,34 +867,13 @@ function doSubmit(){
   // Teams notify buttons
   var notifyBtns=[];
   
-  // If no assignee — post directly to ERP Tickets channel
-  if(!selAsgn||selAsgn.length===0||t.assign==='Unassigned'){
-    // Auto-post to Teams ERP Tickets channel via webhook
-    callFlowEvent('New Ticket',{
-      ticketId:id,subject:sj,category:t.cat,subcategory:t.sub,
-      priority:t.prio,status:'Open',raisedBy:nm,
-      requesterEmail:fullEM,mobile:fullMB,
-      assigneeName:'Unassigned',assigneeEmail:'',
-      targetDate:tdVal?fmt(tdVal):'',
-      raisedOn:fmt(t.raisedOn),
-      description:t.desc||''
-    });
-    // Add button to open ERP Tickets channel
-    var channelLines=[
-      'New unassigned ticket raised:','',
-      '\uD83C\uDFAB Ticket No: '+id,
-      '\uD83D\uDCCC Subject: '+sj,
-      '\uD83D\uDCC2 Category: '+t.cat+(t.sub?' \u2014 '+t.sub:''),
-      '\uD83D\uDD34 Priority: '+t.prio,
-      '\uD83D\uDC64 Raised By: '+nm,
-      '\uD83D\uDCF1 Mobile: '+fullMB,
-      tdVal?'\uD83D\uDCC5 Target Date: '+fmt(tdVal):'',
-      '','Please assign and action this ticket.','\u2014 Blend ERP Support'
-    ].filter(Boolean);
-    notifyBtns.push('<a href="https://teams.microsoft.com/l/channel/19%3Ax4R7MXy1VczBK9Nfm5WX81TI5Rkhrvu1oLfXykPEeKc1%40thread.tacv2/ERP%20Tickets?groupId=f21e4d84-9375-4789-9be4-153e8d873ac0&tenantId=5e09d88b-d125-453e-a02e-1920a11eddfb" target="_blank" class="btn b-blue b-sm" style="text-decoration:none">\uD83D\uDCE2 Post to ERP Tickets Channel</a>');
+  // Unassigned — add ERP Tickets channel button
+  if(!t.assign||t.assign==='Unassigned'||selAsgn[0].name==='Unassigned'){
+    notifyBtns.push('<a href="https://teams.microsoft.com/l/channel/19%3Ax4R7MXy1VczBK9Nfm5WX81TI5Rkhrvu1oLfXykPEeKc1%40thread.tacv2/ERP%20Tickets?groupId=f21e4d84-9375-4789-9be4-153e8d873ac0&tenantId=5e09d88b-d125-453e-a02e-1920a11eddfb" target="_blank" class="btn b-blue b-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin:4px">&#128226; Open ERP Tickets Channel</a>');
   }
   
   selAsgn.forEach(function(a){
+    if(a.name==='Unassigned'||!a.email)return; // Skip unassigned
     var lines=['Hi '+a.name+', a new ERP support ticket has been assigned to you.','',
       '🎫 Ticket No: '+id,'📌 Subject: '+sj,'📂 Category: '+t.cat+' — '+t.sub,
       '🔴 Priority: '+t.prio,'👤 Raised By: '+nm+' ('+fullEM+')','📱 Mobile: '+fullMB,
